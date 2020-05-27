@@ -155,19 +155,28 @@ namespace sgpp{
     std::vector<std::vector<int>> PolynomialChaosExpansion::multiIndex(int dimension, int order){
       std::vector<std::vector<int>> index;
       std::vector<int> curr(dimension);
-      while (true){
-        index.push_back(curr); 
-        curr[0]++;
-        for (int i = 0; i<dimension; ++i) {
-          if (curr[i]>order){
-            curr[i]-=order;
-            curr[i+1]++;
-          }
-        }
-        if(curr[dimension-1]>order){
+    while (true) {
+      index.push_back(curr);
+      curr[0]++;
+    // for (auto i : curr) {
+    //  cout << i << ' ';
+    //}
+      cout << endl;
+      for (int i = 0; i < dimension; ++i) {
+        if (curr[dimension - 1] > order) {
           break;
         }
+        if (curr[i] > order) {
+          curr[i] -= order;
+          curr[i + 1]++;
+        }
       }
+      if (curr[dimension - 1] > order) {
+        break;
+      }
+    }
+  
+      
       return index;
     }
     void PolynomialChaosExpansion::calculateCoefficients(){
