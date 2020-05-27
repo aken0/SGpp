@@ -185,7 +185,7 @@ namespace sgpp{
         result.push_back(aj);
 
       }
-      
+
 
 
       this->coefficients=result;

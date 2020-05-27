@@ -24,13 +24,13 @@ namespace sgpp{
       //double evalLaguerre(int n, double x);
       //double evalJacobi(int n, double x, double alpha, double beta);
       //double evalGenLaguerre(int n, double x, double alpha);
-      
+
       //double weightHermite(double n, double x);
       //double weightLegendre(double n, double x);
       //double weightLaguerre(double n, double x);
       //double weightJacobi(double n, double x, double alpha, double beta);
       //double weightGenlaguerre(double n, double x, double alpha);
-      
+
       //std::map<std::string,std::function<double(double)>> weights;  
       const std::map<std::string,std::function<double(double)>> weights {
         {"hermite",[](double x){return std::exp(-std::pow(x,2)/2);}},
