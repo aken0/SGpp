@@ -158,10 +158,6 @@ namespace sgpp{
     while (true) {
       index.push_back(curr);
       curr[0]++;
-    // for (auto i : curr) {
-    //  cout << i << ' ';
-    //}
-      cout << endl;
       for (int i = 0; i < dimension; ++i) {
         if (curr[dimension - 1] > order) {
           break;
