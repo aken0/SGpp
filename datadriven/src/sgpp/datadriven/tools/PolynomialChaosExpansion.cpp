@@ -16,6 +16,7 @@ namespace sgpp{
       this->order = order;
       this->types = types;
     }
+
     PolynomialChaosExpansion::~PolynomialChaosExpansion(){}
 
     std::map<std::string,std::function<double(double)>> PolynomialChaosExpansion::returnmap(){
