@@ -5,24 +5,46 @@
 #include "sgpp/base/datatypes/DataVector.hpp"
 #include <random>
 #include <string>
+#include <utility>
 #include <vector>
 #include <algorithm>
 namespace sgpp{
   namespace datadriven{
-    PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const base::DataVector&)> f,int order, std::vector<std::string> types, double alpha,double beta){
+    PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const base::DataVector&)> f,int order, std::vector<std::string> types,std::vector<std::pair<double, double>> ranges, double alpha,double beta){
       func = f;
       this->alpha=alpha;
       this->beta=beta;
       this->order = order;
       this->types = types;
-    }
+      this->ranges = ranges;
 
+      this->weights= std::map<std::string,std::function<double(double)>> {
+        {"hermite",[](double x){return std::exp(-std::pow(x,2)/2);}},
+          {"jacobi",[this](double x)->double{return std::pow((1-x),this->alpha)*std::pow((1+x),this->beta);}},
+          {"legendre",[](double x){return 1;}},
+          {"laguerre",[](double x){return std::exp(-x);}},
+          {"genlaguerre",[this](double x) ->double {return std::pow(x,this->alpha)*std::exp(-x);}}
+      };
+      this->denoms = std::map<std::string, std::function<double(double)>> {
+        {"hermite",[](double j){return std::sqrt(2*M_PI);}},
+          {"jacobi",[this](double j){return 0;}},
+          {"legendre",[](double j){return 2/((2*j)+1);}},
+          {"laguerre",[](double j){return 1.0;}},
+          {"genlaguerre",[this](double j){return std::pow(j,this->alpha)*std::exp(-j);}}
+      };
+      this->evals = std::map<std::string, std::function<double(double,double)>> {
+        {"hermite",[this](int n, double x){return evalHermite(n, x);}},
+          {"jacobi",[this](int n, double x){return evalJacobi(n,x,this->alpha,this->beta);}},
+          {"legendre",[this](int n, double x){return evalLegendre(n, x);}},
+          {"laguerre",[this](int n, double x){return evalLaguerre(n, x);}},
+          {"genlaguerre",[this](int n, double x){return evalGenLaguerre(n, x,this->alpha);}}};
+    }
     PolynomialChaosExpansion::~PolynomialChaosExpansion(){}
+    //PolynomialChaosExpansion::weights;
 
     std::map<std::string,std::function<double(double)>> PolynomialChaosExpansion::returnmap(){
-      return PolynomialChaosExpansion::weights; 
-    }
-
+      return this->weights; 
+    };
     double PolynomialChaosExpansion::evalHermite(int n, double x){
       if(n==0){
         return 1.0;
@@ -90,7 +112,7 @@ namespace sgpp{
       }
       return 0;
     }
-    //TODO FIX THIS
+    //todo fix this
     double PolynomialChaosExpansion::evalJacobi(int n, double x, double alpha, double beta){
       if(n==0){
         return 1.0;
@@ -139,53 +161,83 @@ namespace sgpp{
       }
       return 0;
     }
-    //TODO? reasonable accuracy
-    double PolynomialChaosExpansion::monteCarloQuad(std::function<double(double)> func, double left, double right, long N){
-      double factor=(right-left)*(1.0/(double(N)));
+    //todo? 
+    double PolynomialChaosExpansion::monteCarloQuad(std::function<double(const base::DataVector&)> func, std::vector<std::pair<double, double>> vec, long n){
+      std::vector<std::uniform_real_distribution<double>> dists(vec.size());
+      double prod=1;
+      for(auto pair:vec){
+        prod*=(pair.second-pair.first);
+      }
+      double factor=prod*(1.0/(double(n)));
       std::random_device dev;
-      std::mt19937 mersenne {dev()};
-      std::uniform_real_distribution<double> dis {left,right};
-      auto gen = [&func,&dis, &mersenne](){
-        return func(dis(mersenne));};
-      std::vector<double> vec(N);
-      std::generate(vec.begin(),vec.end(),gen);
-      double sum=std::accumulate(vec.begin(),vec.end(),0.0);
+      std::mt19937_64 mersenne {dev()};
+      for (int i = 0; i<vec.size(); ++i) {
+        dists[i]=std::uniform_real_distribution<double> {vec[i].first,vec[i].second};
+
+      }
+      auto gen = [&func,&dists, &mersenne](){
+        std::vector<double> randvec(dists.size());
+        for (int j =0; j<dists.size(); ++j) {
+          randvec[j]=dists[j](mersenne); 
+        }
+        return func(base::DataVector(randvec));
+      };
+      std::vector<double> results(n);
+      std::generate(results.begin(),results.end(),gen);
+      double sum=std::accumulate(results.begin(),results.end(),0.0);
       return factor*sum;
     }
+
     std::vector<std::vector<int>> PolynomialChaosExpansion::multiIndex(int dimension, int order){
       std::vector<std::vector<int>> index;
       std::vector<int> curr(dimension);
-    while (true) {
-      index.push_back(curr);
-      curr[0]++;
-      for (int i = 0; i < dimension; ++i) {
+      while (true) {
+        index.push_back(curr);
+        curr[0]++;
+        for (int i = 0; i < dimension; ++i) {
+          if (curr[dimension - 1] > order) {
+            break;
+          }
+          if (curr[i] > order) {
+            curr[i] -= order +1;
+            curr[i + 1]++;
+          }
+        }
         if (curr[dimension - 1] > order) {
           break;
         }
-        if (curr[i] > order) {
-          curr[i] -= order;
-          curr[i + 1]++;
-        }
       }
-      if (curr[dimension - 1] > order) {
-        break;
-      }
-    }
-  
-      
+      index.erase(std::remove_if(index.begin(), index.end(),[order](std::vector<int> ee){return std::accumulate(ee.begin(),ee.end(),0)>order;}),index.end());
+
       return index;
     }
+
     void PolynomialChaosExpansion::calculateCoefficients(){
       base::DataVector result;
-      auto index =PolynomialChaosExpansion::multiIndex(this->types.size(),this->order);
-      for (auto i= 0; i<index.size(); ++i) {
+      auto index =PolynomialChaosExpansion::multiIndex(types.size(),order);
+      //calculate aj for each entry in the multiindex
+      for (auto entry: index) {
 
         //lambda for composite function to be integrated
+        auto numfunc= [this](const base::DataVector& vec){
+          double prd=1;
+          for (int i=0; i<vec.getSize(); ++i) {
+            prd*=1; 
+          }
+          return prd;
+        };
 
-        //integrate above function using MC
-        double num;
-        double denom;
+        auto intfunc = [this,numfunc](const base::DataVector& vec){
+          return numfunc(vec)*func(vec);
+        };
+        //integrate above function using mc
+        double num =monteCarloQuad(intfunc,ranges,1000000);
+        auto ee=denoms[types[2]];
+        double denom=1;
         //calculate denominator
+        for (int i=0; i<types.size(); ++i) {
+          denom*=denoms[types[i]](entry[i]);
+        }
 
         double aj=num/denom; 
         result.push_back(aj);
