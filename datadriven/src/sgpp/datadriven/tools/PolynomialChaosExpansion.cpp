@@ -1,13 +1,15 @@
-#include <cmath>
-#include <functional>
+#include <math.h>
 #include <sgpp/datadriven/tools/PolynomialChaosExpansion.hpp>
 #include <sgpp/globaldef.hpp>
-#include "sgpp/base/datatypes/DataVector.hpp"
+#include <sgpp/base/datatypes/DataVector.hpp>
+#include <functional>
+#include <cmath>
 #include <random>
 #include <string>
 #include <utility>
 #include <vector>
 #include <algorithm>
+#include <numeric>
 namespace sgpp{
   namespace datadriven{
     PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const base::DataVector&)> f,int order, std::vector<std::string> types,std::vector<std::pair<double, double>> ranges, double alpha,double beta){
@@ -21,16 +23,16 @@ namespace sgpp{
       this->weights= std::map<std::string,std::function<double(double)>> {
         {"hermite",[](double x){return std::exp(-std::pow(x,2)/2);}},
           {"jacobi",[this](double x)->double{return std::pow((1-x),this->alpha)*std::pow((1+x),this->beta);}},
-          {"legendre",[](double x){return 1;}},
+          {"legendre",[](double x){return 1.0;}},
           {"laguerre",[](double x){return std::exp(-x);}},
           {"genlaguerre",[this](double x) ->double {return std::pow(x,this->alpha)*std::exp(-x);}}
       };
       this->denoms = std::map<std::string, std::function<double(double)>> {
-        {"hermite",[](double j){return std::sqrt(2*M_PI);}},
-          {"jacobi",[this](double j){return 0;}},
+        {"hermite",[](double j){return std::sqrt(2*M_PI)*std::tgamma(j+1);}},
+          {"jacobi",[this](double j){return ((std::pow(2,this->alpha*this->beta+1)/(2*j+this->alpha*this->beta+1))*((std::tgamma(j+this->alpha+1)*std::tgamma(j+this->beta+1))/(std::tgamma(this->alpha*this->beta+1)*std::tgamma(j+1))));}},
           {"legendre",[](double j){return 2/((2*j)+1);}},
           {"laguerre",[](double j){return 1.0;}},
-          {"genlaguerre",[this](double j){return std::pow(j,this->alpha)*std::exp(-j);}}
+          {"genlaguerre",[this](double j){return std::tgamma(j+this->alpha+1)/std::tgamma(j+1);}}
       };
       this->evals = std::map<std::string, std::function<double(double,double)>> {
         {"hermite",[this](int n, double x){return evalHermite(n, x);}},
@@ -40,11 +42,9 @@ namespace sgpp{
           {"genlaguerre",[this](int n, double x){return evalGenLaguerre(n, x,this->alpha);}}};
     }
     PolynomialChaosExpansion::~PolynomialChaosExpansion(){}
-    //PolynomialChaosExpansion::weights;
-
     std::map<std::string,std::function<double(double)>> PolynomialChaosExpansion::returnmap(){
       return this->weights; 
-    };
+    }
     double PolynomialChaosExpansion::evalHermite(int n, double x){
       if(n==0){
         return 1.0;
@@ -64,7 +64,6 @@ namespace sgpp{
         return next;
       }
     }
-
     double PolynomialChaosExpansion::evalLegendre(int n, double x){
       if(n<0){
         n= -n -1;
@@ -88,7 +87,6 @@ namespace sgpp{
         }
         return next;
       }
-
     }
     double PolynomialChaosExpansion::evalLaguerre(int n, double x){
       if(n==0){
@@ -112,6 +110,7 @@ namespace sgpp{
       }
       return 0;
     }
+
     //todo fix this
     double PolynomialChaosExpansion::evalJacobi(int n, double x, double alpha, double beta){
       if(n==0){
@@ -162,25 +161,25 @@ namespace sgpp{
       return 0;
     }
     //todo? 
-    double PolynomialChaosExpansion::monteCarloQuad(std::function<double(const base::DataVector&)> func, std::vector<std::pair<double, double>> vec, long n){
-      std::vector<std::uniform_real_distribution<double>> dists(vec.size());
+    double PolynomialChaosExpansion::monteCarloQuad(std::function<double(const base::DataVector&)> funct,long n){
+      std::vector<std::uniform_real_distribution<double>> dists(ranges.size());
       double prod=1;
-      for(auto pair:vec){
+      for(auto pair:ranges){
         prod*=(pair.second-pair.first);
       }
       double factor=prod*(1.0/(double(n)));
       std::random_device dev;
       std::mt19937_64 mersenne {dev()};
-      for (int i = 0; i<vec.size(); ++i) {
-        dists[i]=std::uniform_real_distribution<double> {vec[i].first,vec[i].second};
+      for (int i = 0; i<ranges.size(); ++i) {
+        dists[i]=std::uniform_real_distribution<double> {ranges[i].first,ranges[i].second};
 
       }
-      auto gen = [&func,&dists, &mersenne](){
+      auto gen = [funct,&dists, &mersenne](){
         std::vector<double> randvec(dists.size());
         for (int j =0; j<dists.size(); ++j) {
           randvec[j]=dists[j](mersenne); 
         }
-        return func(base::DataVector(randvec));
+        return funct(base::DataVector(randvec));
       };
       std::vector<double> results(n);
       std::generate(results.begin(),results.end(),gen);
@@ -217,36 +216,31 @@ namespace sgpp{
       auto index =PolynomialChaosExpansion::multiIndex(types.size(),order);
       //calculate aj for each entry in the multiindex
       for (auto entry: index) {
-
-        //lambda for composite function to be integrated
-        auto numfunc= [this](const base::DataVector& vec){
+        //lambdas for composite function to be integrated
+        auto numfunc= [this,entry](const base::DataVector& vec){
           double prd=1;
           for (int i=0; i<vec.getSize(); ++i) {
-            prd*=1; 
+            prd*=evals[types[i]](entry[i],vec[i])*weights[types[i]](vec[i]); 
           }
           return prd;
         };
-
         auto intfunc = [this,numfunc](const base::DataVector& vec){
           return numfunc(vec)*func(vec);
         };
         //integrate above function using mc
-        double num =monteCarloQuad(intfunc,ranges,1000000);
-        auto ee=denoms[types[2]];
-        double denom=1;
+        double num =monteCarloQuad(intfunc,100000000);
         //calculate denominator
+        double denom=1.0;
         for (int i=0; i<types.size(); ++i) {
           denom*=denoms[types[i]](entry[i]);
         }
-
         double aj=num/denom; 
         result.push_back(aj);
-
       }
-
-
-
       this->coefficients=result;
+    }
+    base::DataVector PolynomialChaosExpansion::getCoefficients(){
+      return coefficients;
     }
 
 
