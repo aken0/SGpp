@@ -29,21 +29,39 @@ namespace sgpp{
       };
       this->denoms = std::map<std::string, std::function<double(double)>> {
         {"hermite",[](double j){return std::sqrt(2*M_PI)*std::tgamma(j+1);}},
-          {"jacobi",[this](double j){return ((std::pow(2,this->alpha*this->beta+1)/(2*j+this->alpha*this->beta+1))*((std::tgamma(j+this->alpha+1)*std::tgamma(j+this->beta+1))/(std::tgamma(this->alpha*this->beta+1)*std::tgamma(j+1))));}},
+          {"jacobi",[this](double j){return ((std::pow(2,this->alpha+this->beta+1)/(2*j+this->alpha+this->beta+1))*((std::tgamma(j+this->alpha+1)*std::tgamma(j+this->beta+1))/(std::tgamma(j+this->alpha+this->beta+1)*std::tgamma(j+1))));}},
           {"legendre",[](double j){return 2/((2*j)+1);}},
           {"laguerre",[](double j){return 1.0;}},
           {"genlaguerre",[this](double j){return std::tgamma(j+this->alpha+1)/std::tgamma(j+1);}}
       };
       this->evals = std::map<std::string, std::function<double(double,double)>> {
         {"hermite",[this](int n, double x){return evalHermite(n, x);}},
-          {"jacobi",[this](int n, double x){return evalJacobi(n,x,this->alpha,this->beta);}},
+          {"jacobi",[this](int n, double x){return evalJacobi(n,x);}},
           {"legendre",[this](int n, double x){return evalLegendre(n, x);}},
           {"laguerre",[this](int n, double x){return evalLaguerre(n, x);}},
-          {"genlaguerre",[this](int n, double x){return evalGenLaguerre(n, x,this->alpha);}}};
+          {"genlaguerre",[this](int n, double x){return evalGenLaguerre(n, x);}}};
     }
     PolynomialChaosExpansion::~PolynomialChaosExpansion(){}
-    std::map<std::string,std::function<double(double)>> PolynomialChaosExpansion::returnmap(){
-      return this->weights; 
+    double PolynomialChaosExpansion::evalLegendre(int n, double x){
+      if(n==0){
+        return 1.0;
+      }
+      else if (n==1) {
+        return x;
+      }
+      else {
+        double next = 0.0;
+        //n-1
+        double last = 1.0;
+        //n
+        double curr=x;
+        for (double i = 1.0; i<n; ++i) {
+          next = ((2.0*i+1.0)/(i+1.0))*x*curr - (i/(i+1.0))*last;
+          last = curr;
+          curr = next;
+        }
+        return next;
+      }
     }
     double PolynomialChaosExpansion::evalHermite(int n, double x){
       if(n==0){
@@ -53,35 +71,11 @@ namespace sgpp{
         return x;
       }
       else{
-        double next=0.0;
+        double next = 0.0;
         double last = 1.0;
         double curr = x;
         for (int i = 1.0; i<n; ++i) {
-          next = x* curr - i* last; 
-          last =curr;
-          curr =next; 
-        }
-        return next;
-      }
-    }
-    double PolynomialChaosExpansion::evalLegendre(int n, double x){
-      if(n<0){
-        n= -n -1;
-      }
-      if(n==0){
-        return 1.0;
-      }
-      else if (n==1) {
-        return x;
-      }
-      else {
-        double next=0.0;
-        //n-1
-        double last=1.0;
-        //n
-        double curr=x;
-        for (double i = 1.0; i<n; ++i) {
-          next= ((2.0*i+1.0)/(i+1.0))*x*curr - (i/(i+1.0))*last;
+          next = x* curr - i* last;
           last = curr;
           curr = next;
         }
@@ -96,13 +90,11 @@ namespace sgpp{
         return 1-x;
       }
       else {
-        double next;
-        //n-1
-        double last=1.0;
-        //n
-        double curr=1-x;
+        double next = 0.0;
+        double last = 1.0;
+        double curr = 1-x;
         for (double i = 1.0; i<n; ++i) {
-          next= ((2.0*i+1.0-x)*curr - i*last)/(i+1);
+          next = ((2.0*i+1.0-x)*curr - i*last)/(i+1);
           last = curr;
           curr = next;
         }
@@ -111,24 +103,23 @@ namespace sgpp{
       return 0;
     }
 
-    //todo fix this
-    double PolynomialChaosExpansion::evalJacobi(int n, double x, double alpha, double beta){
+    double PolynomialChaosExpansion::evalJacobi(int n, double x){
       if(n==0){
         return 1.0;
       }
       else if(n==1){
-        return (alpha + 1)*(alpha+beta+2)*((x-1)/2);
+        return (alpha + 1)+(alpha+beta+2)*((x-1)/2);
       }
       else{
-        double next=0.0;
+        double next = 0.0;
         double last = 1.0;
-        double curr=(alpha + 1)*(alpha+beta+2)*((x-1)/2);
+        double curr = (alpha + 1)+(alpha+beta+2)*((x-1)/2);
         for (double i = 2.0; i<=n; ++i) {
-          double q1= ((2*i*alpha+beta-1)*((2*i+alpha+beta)*(2*i+alpha+beta-2)*x+std::pow(alpha,2)-std::pow(beta,2)))/
+          double q1 = ((2*i+alpha+beta-1)*((2*i+alpha+beta)*(2*i+alpha+beta-2)*x+std::pow(alpha,2)-std::pow(beta,2)))/
             (2*i*(i+alpha+beta)*(2*i+alpha+beta-2));
-          double q2= (2*(i+alpha-1)*(i+beta-1)*(2*i+alpha+beta))/
+          double q2 = (2*(i+alpha-1)*(i+beta-1)*(2*i+alpha+beta))/
             (2*i*(i+alpha+beta)*(2*i+alpha+beta-2));
-          next= q1*curr - q2*last;
+          next = q1*curr - q2*last;
           last = curr;
           curr = next;
         }
@@ -138,7 +129,7 @@ namespace sgpp{
       return 0;
     }
 
-    double PolynomialChaosExpansion::evalGenLaguerre(int n, double x, double alpha){
+    double PolynomialChaosExpansion::evalGenLaguerre(int n, double x){
       if(n==0){
         return 1.0;
       }
@@ -146,13 +137,13 @@ namespace sgpp{
         return 1+alpha-x;
       }
       else {
-        double next=0.0;
+        double next = 0.0;
         //n-1
-        double last=1.0;
+        double last = 1.0;
         //n
-        double curr=1+alpha-x;
+        double curr = 1+alpha-x;
         for (double i = 1.0; i<n; ++i) {
-          next= ((2.0*i+1.0+alpha-x)*curr - (i+alpha)*last)/(i+1);
+          next = ((2.0*i+1.0+alpha-x)*curr - (i+alpha)*last)/(i+1);
           last = curr;
           curr = next;
         }
@@ -160,7 +151,7 @@ namespace sgpp{
       }
       return 0;
     }
-    //todo? 
+    //todo?
     double PolynomialChaosExpansion::monteCarloQuad(std::function<double(const base::DataVector&)> funct,long n){
       std::vector<std::uniform_real_distribution<double>> dists(ranges.size());
       double prod=1;
@@ -177,7 +168,7 @@ namespace sgpp{
       auto gen = [funct,&dists, &mersenne](){
         std::vector<double> randvec(dists.size());
         for (int j =0; j<dists.size(); ++j) {
-          randvec[j]=dists[j](mersenne); 
+          randvec[j]=dists[j](mersenne);
         }
         return funct(base::DataVector(randvec));
       };
@@ -220,7 +211,7 @@ namespace sgpp{
         auto numfunc= [this,entry](const base::DataVector& vec){
           double prd=1;
           for (int i=0; i<vec.getSize(); ++i) {
-            prd*=evals[types[i]](entry[i],vec[i])*weights[types[i]](vec[i]); 
+            prd*=evals[types[i]](entry[i],vec[i])*weights[types[i]](vec[i]);
           }
           return prd;
         };
@@ -234,7 +225,7 @@ namespace sgpp{
         for (int i=0; i<types.size(); ++i) {
           denom*=denoms[types[i]](entry[i]);
         }
-        double aj=num/denom; 
+        double aj=num/denom;
         result.push_back(aj);
       }
       this->coefficients=result;
