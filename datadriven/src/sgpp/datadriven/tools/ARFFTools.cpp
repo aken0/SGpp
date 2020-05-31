@@ -3,30 +3,26 @@
 // use, please see the copyright notice provided with SG++ or at
 // sgpp.sparsegrids.org
 
-#include <sgpp/base/exception/file_exception.hpp>
-#include <sgpp/datadriven/tools/ARFFTools.hpp>
-#include <sgpp/globaldef.hpp>
-#include <sgpp/base/tools/StringTokenizer.hpp>
-
 #include <math.h>
+
 #include <algorithm>
+#include <cstring>
 #include <fstream>
 #include <iostream>
+#include <sgpp/base/exception/file_exception.hpp>
+#include <sgpp/base/tools/StringTokenizer.hpp>
+#include <sgpp/datadriven/tools/ARFFTools.hpp>
+#include <sgpp/globaldef.hpp>
 #include <sstream>
 #include <string>
-#include <cstring>
 #include <vector>
-
 
 namespace sgpp {
 namespace datadriven {
 
-
-void ARFFTools::readARFFSizeFromFile(const std::string& filename,
-                             size_t& numberInstances,
-                             size_t& dimension,
-                             bool hasTargets,
-                             std::vector<double> selectedTargets) {
+void ARFFTools::readARFFSizeFromFile(const std::string& filename, size_t& numberInstances,
+                                     size_t& dimension, bool hasTargets,
+                                     std::vector<double> selectedTargets) {
   std::ifstream stream(filename.c_str());
   if (!stream) {
     std::string msg = "readARFFSizeFromFile: Unable to open file: " + filename;
@@ -36,19 +32,15 @@ void ARFFTools::readARFFSizeFromFile(const std::string& filename,
   stream.close();
 }
 
-void ARFFTools::readARFFSizeFromString(const std::string& content,
-                                       size_t& numberInstances,
-                                       size_t& dimension,
-                                       bool hasTargets,
+void ARFFTools::readARFFSizeFromString(const std::string& content, size_t& numberInstances,
+                                       size_t& dimension, bool hasTargets,
                                        std::vector<double> selectedTargets) {
   std::istringstream stream(content);
   readARFFSize(stream, numberInstances, dimension, hasTargets, selectedTargets);
 }
 
-Dataset ARFFTools::readARFFFromFile(const std::string& filename,
-                                    bool hasTargets,
-                                    size_t instanceCutoff,
-                                    std::vector<size_t> selectedCols,
+Dataset ARFFTools::readARFFFromFile(const std::string& filename, bool hasTargets,
+                                    size_t instanceCutoff, std::vector<size_t> selectedCols,
                                     std::vector<double> selectedTargets) {
   std::ifstream stream(filename.c_str());
   if (!stream) {
@@ -60,20 +52,15 @@ Dataset ARFFTools::readARFFFromFile(const std::string& filename,
   return d;
 }
 
-Dataset ARFFTools::readARFFFromString(const std::string& content,
-                                      bool hasTargets,
-                                      size_t instanceCutoff,
-                                      std::vector<size_t> selectedCols,
+Dataset ARFFTools::readARFFFromString(const std::string& content, bool hasTargets,
+                                      size_t instanceCutoff, std::vector<size_t> selectedCols,
                                       std::vector<double> selectedTargets) {
   std::istringstream stream(content);
   return readARFF(stream, hasTargets, instanceCutoff, selectedCols, selectedTargets);
 }
 
-void ARFFTools::readARFFSize(std::istream& stream,
-                             size_t& numberInstances,
-                             size_t& dimension,
-                             bool hasTargets,
-                             std::vector<double> selectedTargets) {
+void ARFFTools::readARFFSize(std::istream& stream, size_t& numberInstances, size_t& dimension,
+                             bool hasTargets, std::vector<double> selectedTargets) {
   std::string line;
   dimension = 0;
   numberInstances = 0;
@@ -90,8 +77,7 @@ void ARFFTools::readARFFSize(std::istream& stream,
     if (dimension == 0) {
       dimension = std::count(line.begin(), line.end(), ',');
       dimension += hasTargets ? 0 : 1;
-    } else if (dimension - std::count(line.begin(), line.end(), ',') !=
-               (hasTargets ? 0 : 1)) {
+    } else if (dimension - std::count(line.begin(), line.end(), ',') != (hasTargets ? 0 : 1)) {
       std::string msg = "readARFFSize: Columns missing in line ";
       msg.append(std::to_string(numberInstances));
       throw sgpp::base::file_exception(msg.c_str());
@@ -113,11 +99,8 @@ void ARFFTools::readARFFSize(std::istream& stream,
   }
 }
 
-Dataset ARFFTools::readARFF(std::istream& stream,
-                            bool hasTargets,
-                            size_t instanceCutoff,
-                            std::vector<size_t> selectedCols,
-                            std::vector<double> selectedTargets) {
+Dataset ARFFTools::readARFF(std::istream& stream, bool hasTargets, size_t instanceCutoff,
+                            std::vector<size_t> selectedCols, std::vector<double> selectedTargets) {
   size_t maxInst = 0;
   size_t maxDim = 0;
   size_t dimension = 0;
@@ -157,8 +140,7 @@ Dataset ARFFTools::readARFF(std::istream& stream,
       bool isSelectedClass = selectedTargets.size() == 0;
       // TODO(sebastian): this float comp is probably implemented in SGPP
       for (size_t i = 0; i < selectedTargets.size(); i++) {
-        isSelectedClass = isSelectedClass ||
-          (fabs(cl - selectedTargets.at(i)) < 0.001);
+        isSelectedClass = isSelectedClass || (fabs(cl - selectedTargets.at(i)) < 0.001);
       }
       if (isSelectedClass) {
         dataset.getTargets().set(rowIndex, cl);
@@ -173,7 +155,7 @@ Dataset ARFFTools::readARFF(std::istream& stream,
         dataset.getData().set(rowIndex, i, rowEntries.at(i));
       }
     } else {
-       // only write dimensions specified in selectedCols
+      // only write dimensions specified in selectedCols
       for (size_t i = 0; i < selectedCols.size(); i++) {
         dataset.getData().set(rowIndex, i, rowEntries.at(selectedCols.at(i)));
       }

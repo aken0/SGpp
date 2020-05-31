@@ -3,12 +3,10 @@
 // use, please see the copyright notice provided with SG++ or at
 // sgpp.sparsegrids.org
 
-#include <sgpp/datadriven/tools/DatasetGenerator.hpp>
-
-#include <sgpp/globaldef.hpp>
-
-#include <cstdlib>
 #include <cmath>
+#include <cstdlib>
+#include <sgpp/datadriven/tools/DatasetGenerator.hpp>
+#include <sgpp/globaldef.hpp>
 
 namespace sgpp {
 namespace datadriven {
@@ -35,8 +33,8 @@ double DatasetGenerator::normal(double mean, double stddev) {
   return mean + stdnormal * stddev;
 }
 
-void Friedman1Generator::createData(size_t offset, size_t size,
-                                    base::DataMatrix& trData, base::DataVector& classes) {
+void Friedman1Generator::createData(size_t offset, size_t size, base::DataMatrix& trData,
+                                    base::DataVector& classes) {
   trData.resize(size);
   classes.resize(size);
   srand(static_cast<unsigned int>(offset));
@@ -46,22 +44,17 @@ void Friedman1Generator::createData(size_t offset, size_t size,
       trData.set(i, j, uniform(0.0, 1.0));
     }
 
-    double cls = 10.0 * sin(M_PI * trData.get(i, 0) * trData.get(i, 1))
-                  + 20.0 * (trData.get(i, 2) - 0.5) * (trData.get(i, 2) - 0.5)
-                  + 10.0 * trData.get(i, 3)
-                  + 5.0 * trData.get(i, 4) + normal(0.0, 1.0);
+    double cls = 10.0 * sin(M_PI * trData.get(i, 0) * trData.get(i, 1)) +
+                 20.0 * (trData.get(i, 2) - 0.5) * (trData.get(i, 2) - 0.5) +
+                 10.0 * trData.get(i, 3) + 5.0 * trData.get(i, 4) + normal(0.0, 1.0);
     classes.set(i, cls);
   }
 }
 
-size_t Friedman1Generator::getDims() {
-  return 10;
-}
+size_t Friedman1Generator::getDims() { return 10; }
 
-
-
-void Friedman2Generator::createData(size_t offset, size_t size,
-                                    base::DataMatrix& trData, base::DataVector& classes) {
+void Friedman2Generator::createData(size_t offset, size_t size, base::DataMatrix& trData,
+                                    base::DataVector& classes) {
   trData.resize(size);
   classes.resize(size);
   srand(static_cast<unsigned int>(offset));
@@ -81,13 +74,10 @@ void Friedman2Generator::createData(size_t offset, size_t size,
   }
 }
 
-size_t Friedman2Generator::getDims() {
-  return 4;
-}
+size_t Friedman2Generator::getDims() { return 4; }
 
-
-void Friedman3Generator::createData(size_t offset, size_t size,
-                                    base::DataMatrix& trData, base::DataVector& classes) {
+void Friedman3Generator::createData(size_t offset, size_t size, base::DataMatrix& trData,
+                                    base::DataVector& classes) {
   trData.resize(size);
   classes.resize(size);
   srand(static_cast<unsigned int>(offset));
@@ -97,8 +87,7 @@ void Friedman3Generator::createData(size_t offset, size_t size,
     trData.set(i, 1, uniform(40.0 * M_PI, 560.0 * M_PI));
     trData.set(i, 2, uniform(0.0, 1.0));
     trData.set(i, 3, uniform(1.0, 11.0));
-    double tmp = trData.get(i, 1) * trData.get(i, 2) - 1.0 / (trData.get(i,
-                  1) * trData.get(i, 3));
+    double tmp = trData.get(i, 1) * trData.get(i, 2) - 1.0 / (trData.get(i, 1) * trData.get(i, 3));
     double cls = atan(tmp / trData.get(i, 0)) + normal(0.0, 0.1);
     classes.set(i, cls);
   }
@@ -108,9 +97,7 @@ void Friedman3Generator::createData(size_t offset, size_t size,
   }
 }
 
-size_t Friedman3Generator::getDims() {
-  return 4;
-}
+size_t Friedman3Generator::getDims() { return 4; }
 
 }  // namespace datadriven
 }  // namespace sgpp
