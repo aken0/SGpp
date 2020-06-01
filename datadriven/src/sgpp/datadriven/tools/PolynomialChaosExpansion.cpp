@@ -225,7 +225,7 @@ base::DataVector PolynomialChaosExpansion::calculateCoefficients() {
       return numfunc(vec) * func(vec);
     };
     // integrate above function using mc
-    double num = monteCarloQuad(intfunc, 100000000);
+    double num = monteCarloQuad(intfunc, 10000000);
     // calculate denominator
     double denom = 1.0;
     for (std::vector<std::string>::size_type i = 0; i < types.size(); ++i) {
@@ -239,5 +239,20 @@ base::DataVector PolynomialChaosExpansion::calculateCoefficients() {
 }
 base::DataVector PolynomialChaosExpansion::getCoefficients() { return coefficients; }
 
+double PolynomialChaosExpansion::evalExpansion(const base::DataVector& xi) {
+  if (coefficients.empty()) {
+    calculateCoefficients();
+  }
+  auto index = PolynomialChaosExpansion::multiIndex(static_cast<int>(types.size()), order);
+  double sum = 0.0;
+  for (std::vector<std::vector<int>>::size_type j = 0; j < index.size(); ++j) {
+    double prod = 1.0;
+    for (std::vector<double>::size_type i = 0; i < index[j].size(); ++i) {
+      prod *= evals[types[i]](index[j][i], xi[i]);
+    }
+    sum += prod * coefficients[j];
+  }
+  return sum;
+}
 }  // namespace datadriven
 }  // namespace sgpp

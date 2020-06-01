@@ -9,6 +9,7 @@
 #include <sgpp/base/datatypes/DataVector.hpp>
 #include <sgpp/globaldef.hpp>
 #include <string>
+#include <utility>
 #include <vector>
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -30,8 +31,6 @@ class PolynomialChaosExpansion {
   double evalLaguerre(int n, double x);
   double evalJacobi(int n, double x);
   double evalGenLaguerre(int n, double x);
-
- protected:
   std::map<std::string, std::function<double(double)>> weights;
   std::map<std::string, std::function<double(double)>> denoms;
   std::map<std::string, std::function<double(double, double)>> evals;
@@ -48,7 +47,7 @@ class PolynomialChaosExpansion {
   double monteCarloQuad(std::function<double(const base::DataVector&)> func, long n);
   base::DataVector calculateCoefficients();
   base::DataVector getCoefficients();
-  double evalExpansion();
+  double evalExpansion(const base::DataVector& xi);
 };
 }  // namespace datadriven
 }  // namespace sgpp

@@ -3,18 +3,17 @@
 // use, please see the copyright notice provided with SG++ or at
 // sgpp.sparsegrids.org
 
+#include <functional>
+#include <random>
 #include <sgpp/base/grid/Grid.hpp>
 #include <sgpp/base/operation/BaseOpFactory.hpp>
 #include <sgpp/datadriven/DatadrivenOpFactory.hpp>
 #include <sgpp/datadriven/algorithm/DensitySystemMatrix.hpp>
-#include <sgpp/datadriven/configuration/RegularizationConfiguration.hpp>
 #include <sgpp/datadriven/application/SparseGridDensityEstimator.hpp>
+#include <sgpp/datadriven/configuration/RegularizationConfiguration.hpp>
 #include <sgpp/globaldef.hpp>
 #include <sgpp/pde/operation/PdeOpFactory.hpp>
 #include <sgpp_optimization.hpp>
-
-#include <functional>
-#include <random>
 #include <vector>
 #ifdef USE_CGAL
 #include <CGAL/MP_Float.h>
@@ -209,7 +208,7 @@ void solve_cgal(Grid& grid, DataMatrix& samples, double lambda, DataVector& resu
   DataVector bounds(storage_size, 0.0);
   // define the quadratic Programm
   Program qp(static_cast<int>(storage_size), static_cast<int>(storage_size),  // size of problem
-             // constraints
+                                                                              // constraints
              G_it, bounds.getPointer(), r,
              // bounds
              bounded, bounds.getPointer(), bounded, bounds.getPointer(),
