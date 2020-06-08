@@ -6,6 +6,8 @@
 #include <sgpp/datadriven/tools/PolynomialChaosExpansion.hpp>
 #include <sgpp/globaldef.hpp>
 #include <sgpp_base.hpp>
+#include <utility>
+#include <vector>
 
 #include "sgpp/base/datatypes/DataVector.hpp"
 // function to be integrated
@@ -14,13 +16,15 @@ double e(const sgpp::base::DataVector& vec) {
 }
 int main() {
   sgpp::datadriven::PolynomialChaosExpansion ee = sgpp::datadriven::PolynomialChaosExpansion(
-      e, 4, std::vector<std::string>{"legendre", "legendre"},
+      e, 4,
+      std::vector<sgpp::datadriven::distributionType>{sgpp::datadriven::distributionType::Uniform,
+                                                      sgpp::datadriven::distributionType::Uniform},
       std::vector<std::pair<double, double>>{std::pair<double, double>{-1, 1},
                                              std::pair<double, double>{-1, 1}},
       0, 0);
   std::cout << "integral: " << ee.monteCarloQuad(e, 1000000) << std::endl;
+  std::cout << "integral: " << ee.sparseGridQuadrature(e) << std::endl;
   std::cout << "coefficients: " << std::endl;
-
   ee.calculateCoefficients();
   auto stuff = ee.getCoefficients();
   for (auto entry : stuff) {

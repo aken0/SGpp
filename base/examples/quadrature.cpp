@@ -26,9 +26,8 @@
  */
 
 // include all SG++ base headers
-#include <sgpp_base.hpp>
-
 #include <iostream>
+#include <sgpp_base.hpp>
 
 using sgpp::base::OperationHierarchisation;
 
@@ -53,7 +52,7 @@ int main() {
   std::cout << "dimensionality:        " << gridStorage.getDimension() << std::endl;
 
   // create regular grid, level 3
-  int level = 3;
+  int level = 5;
   grid->getGenerator().regular(level);
   std::cout << "number of grid points: " << gridStorage.getSize() << std::endl;
 
@@ -80,8 +79,8 @@ int main() {
       ->doHierarchisation(alpha);
 
   /**
-     * Now we compute and compare the quadrature using four different methods available in SG++.
-     */
+   * Now we compute and compare the quadrature using four different methods available in SG++.
+   */
 
   // direct quadrature
   std::unique_ptr<sgpp::base::OperationQuadrature> opQ(

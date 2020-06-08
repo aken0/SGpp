@@ -4,6 +4,7 @@
 // sgpp.sparsegrids.org
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <functional>
 #include <map>
 #include <numeric>
@@ -11,45 +12,44 @@
 #include <sgpp/base/datatypes/DataVector.hpp>
 #include <sgpp/datadriven/tools/PolynomialChaosExpansion.hpp>
 #include <sgpp/globaldef.hpp>
+#include <sgpp_base.hpp>
 #include <string>
 #include <utility>
 #include <vector>
 namespace sgpp {
 namespace datadriven {
 PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const base::DataVector&)> f,
-                                                   int order, std::vector<std::string> types,
+                                                   int order, std::vector<distributionType> types,
                                                    std::vector<std::pair<double, double>> ranges,
                                                    double alpha, double beta)
     : func(f), order(order), types(types), ranges(ranges), alpha(alpha), beta(beta) {
-  this->weights = std::map<std::string, std::function<double(double)>>{
-      {"hermite", [](double x) { return std::exp(-std::pow(x, 2) / 2); }},
-      {"jacobi",
-       [this](double x) -> double {
-         return std::pow((1 - x), this->alpha) * std::pow((1 + x), this->beta);
-       }},
-      {"legendre", [](double x) { return 1.0; }},
-      {"laguerre", [](double x) { return std::exp(-x); }},
-      {"genlaguerre",
-       [this](double x) -> double { return std::pow(x, this->alpha) * std::exp(-x); }}};
-  this->denoms = std::map<std::string, std::function<double(double)>>{
-      {"hermite", [](double j) { return std::sqrt(2 * M_PI) * std::tgamma(j + 1); }},
-      {"jacobi",
-       [this](double j) {
-         return (
-             (std::pow(2, this->alpha + this->beta + 1) / (2 * j + this->alpha + this->beta + 1)) *
-             ((std::tgamma(j + this->alpha + 1) * std::tgamma(j + this->beta + 1)) /
-              (std::tgamma(j + this->alpha + this->beta + 1) * std::tgamma(j + 1))));
-       }},
-      {"legendre", [](double j) { return 2 / ((2 * j) + 1); }},
-      {"laguerre", [](double j) { return 1.0; }},
-      {"genlaguerre",
-       [this](double j) { return std::tgamma(j + this->alpha + 1) / std::tgamma(j + 1); }}};
-  this->evals = std::map<std::string, std::function<double(double, double)>>{
-      {"hermite", [this](int n, double x) { return evalHermite(n, x); }},
-      {"jacobi", [this](int n, double x) { return evalJacobi(n, x); }},
-      {"legendre", [this](int n, double x) { return evalLegendre(n, x); }},
-      {"laguerre", [this](int n, double x) { return evalLaguerre(n, x); }},
-      {"genlaguerre", [this](int n, double x) { return evalGenLaguerre(n, x); }}};
+  // hermite,jacobi,legendre,laguerre,genlaguerre
+  this->weights = std::vector<std::function<double(double)>>{
+      {[](double x) { return std::exp(-std::pow(x, 2) / 2); }},
+      {[this](double x) -> double {
+        return std::pow((1 - x), this->alpha) * std::pow((1 + x), this->beta);
+      }},
+      {[](double x) { return 1.0; }},
+      {[](double x) { return std::exp(-x); }},
+      {[this](double x) -> double { return std::pow(x, this->alpha) * std::exp(-x); }}};
+  this->denoms = std::vector<std::function<double(double)>>{
+      {[](double j) { return std::sqrt(2 * M_PI) * std::tgamma(j + 1); }},
+      {[this](double j) {
+        return (
+            (std::pow(2, this->alpha + this->beta + 1) / (2 * j + this->alpha + this->beta + 1)) *
+            ((std::tgamma(j + this->alpha + 1) * std::tgamma(j + this->beta + 1)) /
+             (std::tgamma(j + this->alpha + this->beta + 1) * std::tgamma(j + 1))));
+      }},
+      {[](double j) { return 2 / ((2 * j) + 1); }},
+      {[](double j) { return 1.0; }},
+      {[this](double j) { return std::tgamma(j + this->alpha + 1) / std::tgamma(j + 1); }}};
+
+  this->evals = std::vector<std::function<double(double, double)>>{
+      {[this](int n, double x) { return evalHermite(n, x); }},
+      {[this](int n, double x) { return evalJacobi(n, x); }},
+      {[this](int n, double x) { return evalLegendre(n, x); }},
+      {[this](int n, double x) { return evalLaguerre(n, x); }},
+      {[this](int n, double x) { return evalGenLaguerre(n, x); }}};
 }
 PolynomialChaosExpansion::~PolynomialChaosExpansion() {}
 double PolynomialChaosExpansion::evalLegendre(int n, double x) {
@@ -154,7 +154,7 @@ double PolynomialChaosExpansion::evalGenLaguerre(int n, double x) {
 }
 // todo?
 double PolynomialChaosExpansion::monteCarloQuad(
-    std::function<double(const base::DataVector&)> funct, long n) {
+    std::function<double(const base::DataVector&)> funct, size_t n) {
   std::vector<std::uniform_real_distribution<double>> dists(ranges.size());
   double prod = 1;
   for (auto pair : ranges) {
@@ -174,10 +174,225 @@ double PolynomialChaosExpansion::monteCarloQuad(
     }
     return funct(base::DataVector(randvec));
   };
-  std::vector<double> results(n);
+  base::DataVector results(n);
   std::generate(results.begin(), results.end(), gen);
-  double sum = std::accumulate(results.begin(), results.end(), 0.0);
-  return factor * sum;
+  return factor * results.sum();
+}
+
+// work in progress
+double PolynomialChaosExpansion::sparseGridQuadrature(
+    std::function<double(const base::DataVector&)> funct) {
+  auto numfunc = [funct](int dim, double* input, void* clientdata) {
+    return funct(base::DataVector(input, dim));
+  };
+  auto dim = static_cast<int>(types.size());
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearGrid(dim));
+  sgpp::base::GridStorage& gridStorage = grid->getStorage();
+  // std::cout << "dimensionality:        " << gridStorage.getDimension() << std::endl;
+
+  // create regular grid, level 3
+  int level = 3;
+  grid->getGenerator().regular(level);
+  // std::cout << "number of grid points: " << gridStorage.getSize() << std::endl;
+
+  /**
+   * Calculate the surplus vector alpha for the interpolant of \f$
+   * f(x)\f$.  Since the function can be evaluated at any
+   * point. Hence. we simply evaluate it at the coordinates of the
+   * grid points to obtain the nodal values. Then we use
+   * hierarchization to obtain the surplus value.
+   *
+   */
+
+  sgpp::base::DataVector alpha(gridStorage.getSize());
+  double p[dim];
+
+  for (size_t i = 0; i < gridStorage.getSize(); i++) {
+    sgpp::base::GridPoint& gp = gridStorage.getPoint(i);
+    for (int j = 0; j < dim; ++j) {
+      p[j] = gp.getStandardCoordinate(j);
+    }
+    alpha[i] = numfunc(2, p, nullptr);
+  }
+
+  std::unique_ptr<base::OperationHierarchisation>(
+      sgpp::op_factory::createOperationHierarchisation(*grid))
+      ->doHierarchisation(alpha);
+
+  /**
+   * Now we compute and compare the quadrature using four different methods available in SG++.
+   */
+
+  // direct quadrature
+  std::unique_ptr<sgpp::base::OperationQuadrature> opQ(
+      sgpp::op_factory::createOperationQuadrature(*grid));
+  double res = opQ->doQuadrature(alpha);
+  return res;
+
+  // Monte Carlo quadrature using 100000 paths
+  sgpp::base::OperationQuadratureMC opMC(*grid, 100000);
+  res = opMC.doQuadrature(alpha);
+  // return res;
+  // std::cout << "Monte Carlo value:     " << res << std::endl;
+  // res = opMC.doQuadrature(alpha);
+  // std::cout << "Monte Carlo value:     " << res << std::endl;
+
+  // Monte Carlo quadrature of a function
+  // res = opMC.doQuadratureFunc(funct, nullptr);
+  // std::cout << "MC value:              " << res << std::endl;
+
+  // Monte Carlo quadrature of error
+  // res = opMC.doQuadratureL2Error(funct, nullptr, alpha);
+  // std::cout << "MC L2-error:           " << res << std::endl;
+}
+// work in progress
+double PolynomialChaosExpansion::adaptiveQuadrature(
+    std::function<double(const base::DataVector&)> funct) {
+  auto numfunc = [funct](int dim, double* input, void* clientdata) {
+    return funct(base::DataVector(input, dim));
+  };
+
+  auto dim = static_cast<int>(types.size());
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearGrid(dim));
+  sgpp::base::GridStorage& gridStorage = grid->getStorage();
+
+  int level = 1;
+  grid->getGenerator().regular(level);
+
+  /**
+   * Create coefficient vector with size corresponding to the grid size.
+   * Initially, all the values are set to zero.
+   */
+  base::DataVector alpha(gridStorage.getSize());
+
+  // std::cout << "length of alpha vector:           " << alpha.getSize() << std::endl;
+
+  /**
+   * Create a vector for storing (possibly expensive) function evaluations at
+   * each gridpoint.
+   */
+  base::DataVector funEvals(gridStorage.getSize());
+  for (size_t i = 0; i < gridStorage.getSize(); i++) {
+    base::GridPoint& gp = gridStorage.getPoint(i);
+    base::DataVector vec(dim);
+    for (int j = 0; j < dim; ++j) {
+      vec[j] = gp.getStandardCoordinate(j);
+    }
+    funEvals[i] = funct(vec);
+  }
+
+  /**
+   * create a vector for storing newly added points by their sequence id.
+   */
+  std::vector<size_t> addedPoints;
+
+  /**
+   * Refine adaptively 5 times.
+   */
+  for (int step = 0; step < 5; step++) {
+    /**
+     * Refine a single grid point each time.
+     * The SurplusRefinementFunctor chooses the grid point with the highest absolute surplus.
+     * Refining the point means, that all children of this point (if not already present) are
+     * added to the grid. Also all missing parents are added (recursively).
+     * All new points are appended to the addedPoints vector.
+     */
+    base::SurplusRefinementFunctor functor(alpha, 1);
+    grid->getGenerator().refine(functor, &addedPoints);
+
+    /**
+     * Extend alpha and funEval vector (new entries uninitialized). Note that right now, the size
+     * of both vectors
+     * matches number of gridpoints again, but the values of the new points are set to zero.
+     */
+    alpha.resize(gridStorage.getSize());
+    funEvals.resize(gridStorage.getSize());
+
+    /**
+     * Evaluate the function f at the newly created gridpoints and set the
+     * corresponding entries in the funEval vector with these values.
+     */
+    for (size_t i = 0; i < addedPoints.size(); i++) {
+      size_t seq = addedPoints[i];
+      base::GridPoint& gp = gridStorage.getPoint(seq);
+      base::DataVector vec(dim);
+      for (int j = 0; j < dim; ++j) {
+        vec[j] = gp.getStandardCoordinate(j);
+      }
+      funEvals[seq] = funct(vec);
+    }
+
+    /**
+     * Reset the alpha vector to function evals to prepare for hierarchisation.
+     */
+    alpha.copyFrom(funEvals);
+
+    /**
+     * Each time, we have to hierarchize the grid again, because in the previous interation,
+     * new grid points have been added.
+     */
+    sgpp::op_factory::createOperationHierarchisation(*grid)->doHierarchisation(alpha);
+
+    /**
+     * Clear the addedPoints vector for the next iteration.
+     */
+    addedPoints.clear();
+
+    // std::cout << "refinement step " << step + 1 << ", new grid size: " << alpha.getSize() <<
+    // std::endl;
+  }
+  for (size_t i = 0; i < alpha.getSize(); i++) {
+    std::cout << alpha[i] << std::endl;
+  }
+
+  /**
+   * Calculate the surplus vector alpha for the interpolant of \f$
+   * f(x)\f$.  Since the function can be evaluated at any
+   * point. Hence. we simply evaluate it at the coordinates of the
+   * grid points to obtain the nodal values. Then we use
+   * hierarchization to obtain the surplus value.
+   *
+   */
+  /**
+    sgpp::base::DataVector alpha(gridStorage.getSize());
+    double p[2];
+
+    for (size_t i = 0; i < gridStorage.getSize(); i++) {
+      sgpp::base::GridPoint& gp = gridStorage.getPoint(i);
+      p[0] = gp.getStandardCoordinate(0);
+      p[1] = gp.getStandardCoordinate(1);
+      alpha[i] = numfunc(2, p, nullptr);
+    }
+
+    std::unique_ptr<base::OperationHierarchisation>(
+        sgpp::op_factory::createOperationHierarchisation(*grid))
+        ->doHierarchisation(alpha);
+  */
+  /**
+   * Now we compute and compare the quadrature using four different methods available in SG++.
+   */
+
+  // direct quadrature
+  std::unique_ptr<sgpp::base::OperationQuadrature> opQ(
+      sgpp::op_factory::createOperationQuadrature(*grid));
+  double res = opQ->doQuadrature(alpha);
+  return res;
+
+  // Monte Carlo quadrature using 100000 paths
+  sgpp::base::OperationQuadratureMC opMC(*grid, 100000);
+  res = opMC.doQuadrature(alpha);
+  // return res;
+  // std::cout << "Monte Carlo value:     " << res << std::endl;
+  // res = opMC.doQuadrature(alpha);
+  // std::cout << "Monte Carlo value:     " << res << std::endl;
+
+  // Monte Carlo quadrature of a function
+  // res = opMC.doQuadratureFunc(funct, nullptr);
+  // std::cout << "MC value:              " << res << std::endl;
+
+  // Monte Carlo quadrature of error
+  // res = opMC.doQuadratureL2Error(funct, nullptr, alpha);
+  // std::cout << "MC L2-error:           " << res << std::endl;
 }
 
 std::vector<std::vector<int>> PolynomialChaosExpansion::multiIndex(int dimension, int order) {
@@ -207,17 +422,16 @@ std::vector<std::vector<int>> PolynomialChaosExpansion::multiIndex(int dimension
 
   return index;
 }
-
 base::DataVector PolynomialChaosExpansion::calculateCoefficients() {
-  base::DataVector result;
   auto index = PolynomialChaosExpansion::multiIndex(static_cast<int>(types.size()), order);
+  base::DataVector result(index.size());
   // calculate aj for each entry in the multiindex
-  for (auto entry : index) {
+  for (std::vector<std::vector<double>>::size_type j = 0; j < index.size(); ++j) {
     // lambdas for composite function to be integrated
-    auto numfunc = [this, entry](const base::DataVector& vec) {
+    auto numfunc = [this, index, j](const base::DataVector& vec) {
       double prd = 1;
       for (std::vector<double>::size_type i = 0; i < vec.getSize(); ++i) {
-        prd *= evals[types[i]](entry[i], vec[i]) * weights[types[i]](vec[i]);
+        prd *= evals[types[i]](index[j][i], vec[i]) * weights[types[i]](vec[i]);
       }
       return prd;
     };
@@ -226,13 +440,15 @@ base::DataVector PolynomialChaosExpansion::calculateCoefficients() {
     };
     // integrate above function using mc
     double num = monteCarloQuad(intfunc, 10000000);
+    // integrate using sparsegrids
+    // double num = sparseGridQuadrature(intfunc);
     // calculate denominator
     double denom = 1.0;
-    for (std::vector<std::string>::size_type i = 0; i < types.size(); ++i) {
-      denom *= denoms[types[i]](entry[i]);
+    for (std::vector<distributionType>::size_type i = 0; i < types.size(); ++i) {
+      denom *= denoms[types[i]](index[j][i]);
     }
     double aj = num / denom;
-    result.push_back(aj);
+    result[j] = aj;
   }
   this->coefficients = result;
   return result;

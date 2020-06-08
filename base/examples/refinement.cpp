@@ -4,21 +4,22 @@
 // sgpp.sparsegrids.org
 
 /**
-  * \page example_refinement_cpp Refinement Example
-  *
-  * Here we demonstrate how to refine a grid. As a refinement indicator, we take the surpluses
-  * of the grid points directly.
-  * We start with a regular sparse grid of level 3 with linear basis functions and refine five
-  * times. In each refinement step, we refine the grid point with the highest absolute surplus.
-  *
-  * The following example interpolates the (non-symmetric) function
-  * f : [0,1]x[0,1] -> R, f(x,y) := 16 (x-1) * x * (y-1) * y
-  *
-  * The number of grid points is printed in each iteration.
-  * After refinement, the surplusses have to be set for all new grid
-  * points, i.e., the alpha-Vector has to be extended.
-  */
+ * \page example_refinement_cpp Refinement Example
+ *
+ * Here we demonstrate how to refine a grid. As a refinement indicator, we take the surpluses
+ * of the grid points directly.
+ * We start with a regular sparse grid of level 3 with linear basis functions and refine five
+ * times. In each refinement step, we refine the grid point with the highest absolute surplus.
+ *
+ * The following example interpolates the (non-symmetric) function
+ * f : [0,1]x[0,1] -> R, f(x,y) := 16 (x-1) * x * (y-1) * y
+ *
+ * The number of grid points is printed in each iteration.
+ * After refinement, the surplusses have to be set for all new grid
+ * points, i.e., the alpha-Vector has to be extended.
+ */
 
+#include <iostream>
 #include <sgpp/base/datatypes/DataVector.hpp>
 #include <sgpp/base/grid/Grid.hpp>
 #include <sgpp/base/grid/GridStorage.hpp>
@@ -26,8 +27,6 @@
 #include <sgpp/base/grid/generation/functors/SurplusRefinementFunctor.hpp>
 #include <sgpp/base/operation/BaseOpFactory.hpp>
 #include <sgpp/base/operation/hash/OperationEval.hpp>
-
-#include <iostream>
 #include <vector>
 
 using sgpp::base::DataVector;
@@ -35,34 +34,34 @@ using sgpp::base::Grid;
 using sgpp::base::GridGenerator;
 using sgpp::base::GridPoint;
 using sgpp::base::GridStorage;
-using sgpp::base::SurplusRefinementFunctor;
 using sgpp::base::OperationHierarchisation;
+using sgpp::base::SurplusRefinementFunctor;
 
 /**
-  * Function to interpolate. This is a two-dimensional parabola. - nonsymmetric(!).
-  */
+ * Function to interpolate. This is a two-dimensional parabola. - nonsymmetric(!).
+ */
 double f(double x0, double x1) { return 16.0 * (x0 - 1) * x0 * (x1 - 1) * x1; }
 
 int main() {
   /**
-    * Create a two-dimensional piecewise bi-linear grid.
-    */
+   * Create a two-dimensional piecewise bi-linear grid.
+   */
   size_t dim = 2;
   std::unique_ptr<Grid> grid(Grid::createLinearGrid(dim));
   GridStorage& gridStorage = grid->getStorage();
   std::cout << "dimensionality:                   " << gridStorage.getDimension() << std::endl;
 
   /**
-    * Create regular sparse grid, level 3.
-    */
+   * Create regular sparse grid, level 3.
+   */
   size_t level = 3;
   grid->getGenerator().regular(level);
   std::cout << "number of initial grid points:    " << gridStorage.getSize() << std::endl;
 
   /**
-    * Create coefficient vector with size corresponding to the grid size.
-    * Initially, all the values are set to zero.
-    */
+   * Create coefficient vector with size corresponding to the grid size.
+   * Initially, all the values are set to zero.
+   */
   DataVector alpha(gridStorage.getSize());
 
   std::cout << "length of alpha vector:           " << alpha.getSize() << std::endl;
@@ -83,24 +82,24 @@ int main() {
   std::vector<size_t> addedPoints;
 
   /**
-    * Refine adaptively 5 times.
-    */
+   * Refine adaptively 5 times.
+   */
   for (int step = 0; step < 5; step++) {
     /**
-      * Refine a single grid point each time.
-      * The SurplusRefinementFunctor chooses the grid point with the highest absolute surplus.
-      * Refining the point means, that all children of this point (if not already present) are
-      * added to the grid. Also all missing parents are added (recursively).
-      * All new points are appended to the addedPoints vector.
-      */
+     * Refine a single grid point each time.
+     * The SurplusRefinementFunctor chooses the grid point with the highest absolute surplus.
+     * Refining the point means, that all children of this point (if not already present) are
+     * added to the grid. Also all missing parents are added (recursively).
+     * All new points are appended to the addedPoints vector.
+     */
     SurplusRefinementFunctor functor(alpha, 1);
     grid->getGenerator().refine(functor, &addedPoints);
 
     /**
-      * Extend alpha and funEval vector (new entries uninitialized). Note that right now, the size
+     * Extend alpha and funEval vector (new entries uninitialized). Note that right now, the size
      * of both vectors
-      * matches number of gridpoints again, but the values of the new points are set to zero.
-      */
+     * matches number of gridpoints again, but the values of the new points are set to zero.
+     */
     alpha.resize(gridStorage.getSize());
     funEvals.resize(gridStorage.getSize());
 
@@ -120,9 +119,9 @@ int main() {
     alpha.copyFrom(funEvals);
 
     /**
-      * Each time, we have to hierarchize the grid again, because in the previous interation,
-      * new grid points have been added.
-      */
+     * Each time, we have to hierarchize the grid again, because in the previous interation,
+     * new grid points have been added.
+     */
     sgpp::op_factory::createOperationHierarchisation(*grid)->doHierarchisation(alpha);
 
     /**

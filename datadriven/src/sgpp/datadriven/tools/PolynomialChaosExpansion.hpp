@@ -7,19 +7,23 @@
 #include <functional>
 #include <map>
 #include <sgpp/base/datatypes/DataVector.hpp>
+#include <sgpp/base/tools/OperationQuadratureMC.hpp>
 #include <sgpp/globaldef.hpp>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "sgpp/base/tools/OperationQuadratureMC.hpp"
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 namespace sgpp {
 namespace datadriven {
+enum distributionType { Normal, Beta, Uniform, Exponential, Gamma };
 class PolynomialChaosExpansion {
   std::function<double(const base::DataVector&)> func;
   int order;
-  std::vector<std::string> types;
+  std::vector<distributionType> types;
   std::vector<std::pair<double, double>> ranges;
   double alpha;
   double beta;
@@ -31,20 +35,23 @@ class PolynomialChaosExpansion {
   double evalLaguerre(int n, double x);
   double evalJacobi(int n, double x);
   double evalGenLaguerre(int n, double x);
-  std::map<std::string, std::function<double(double)>> weights;
-  std::map<std::string, std::function<double(double)>> denoms;
-  std::map<std::string, std::function<double(double, double)>> evals;
+  std::vector<std::function<double(double)>> weights;
+  std::vector<std::function<double(double)>> denoms;
+  std::vector<std::function<double(double, double)>> evals;
 
  public:
   PolynomialChaosExpansion(std::function<double(const base::DataVector&)> func, int order,
-                           std::vector<std::string> types,
+                           std::vector<distributionType> types,
                            std::vector<std::pair<double, double>> ranges, double alpha = 0.0,
                            double beta = 0.0);
   ~PolynomialChaosExpansion();
   // move to private
 
   std::vector<std::vector<int>> multiIndex(int dimension, int order);
-  double monteCarloQuad(std::function<double(const base::DataVector&)> func, long n);
+  double monteCarloQuad(std::function<double(const base::DataVector&)> funct, size_t n);
+  double sparseGridQuadrature(std::function<double(const base::DataVector&)> funct);
+  // double sparseGridQuadrature(base::FUNC);
+  double adaptiveQuadrature(std::function<double(const base::DataVector&)> funct);
   base::DataVector calculateCoefficients();
   base::DataVector getCoefficients();
   double evalExpansion(const base::DataVector& xi);
