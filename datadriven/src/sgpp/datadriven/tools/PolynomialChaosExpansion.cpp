@@ -166,7 +166,7 @@ double PolynomialChaosExpansion::monteCarloQuad(
   for (std::vector<std::pair<double, double>>::size_type i = 0; i < ranges.size(); ++i) {
     dists[i] = std::uniform_real_distribution<double>{ranges[i].first, ranges[i].second};
   }
-  auto gen = [funct, &dists, &mersenne]() {
+  auto gen = [&funct, &dists, &mersenne]() {
     std::vector<double> randvec(dists.size());
     for (std::vector<std::uniform_real_distribution<double>>::size_type j = 0; j < dists.size();
          ++j) {
@@ -179,21 +179,20 @@ double PolynomialChaosExpansion::monteCarloQuad(
   return factor * results.sum();
 }
 
-// work in progress
 double PolynomialChaosExpansion::sparseGridQuadrature(
-    std::function<double(const base::DataVector&)> funct) {
-  auto numfunc = [funct](int dim, double* input, void* clientdata) {
-    return funct(base::DataVector(input, dim));
+    std::function<double(const base::DataVector&)> funct, int dim, int level) {
+  auto numfunc = [&funct](base::DataVector& input, std::vector<std::pair<double, double>>& ranges) {
+    for (int i = 0; i < input.size(); ++i) {
+      input[i] = (input[i]) * (ranges[i].second - ranges[i].first) + ranges[i].first;
+    }
+    return funct(input);
   };
-  auto dim = static_cast<int>(types.size());
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearGrid(dim));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearBoundaryGrid(dim));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   // std::cout << "dimensionality:        " << gridStorage.getDimension() << std::endl;
 
-  // create regular grid, level 3
-  int level = 3;
   grid->getGenerator().regular(level);
-  // std::cout << "number of grid points: " << gridStorage.getSize() << std::endl;
+  std::cout << "number of grid points: " << gridStorage.getSize() << std::endl;
 
   /**
    * Calculate the surplus vector alpha for the interpolant of \f$
@@ -205,58 +204,44 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
    */
 
   sgpp::base::DataVector alpha(gridStorage.getSize());
-  double p[dim];
+  base::DataVector p(dim);
 
   for (size_t i = 0; i < gridStorage.getSize(); i++) {
     sgpp::base::GridPoint& gp = gridStorage.getPoint(i);
     for (int j = 0; j < dim; ++j) {
       p[j] = gp.getStandardCoordinate(j);
     }
-    alpha[i] = numfunc(2, p, nullptr);
+    alpha[i] = numfunc(p, ranges);
   }
 
   std::unique_ptr<base::OperationHierarchisation>(
       sgpp::op_factory::createOperationHierarchisation(*grid))
       ->doHierarchisation(alpha);
 
-  /**
-   * Now we compute and compare the quadrature using four different methods available in SG++.
-   */
-
+  double prod = 1;
+  for (auto pair : ranges) {
+    prod *= (pair.second - pair.first);
+  }
   // direct quadrature
   std::unique_ptr<sgpp::base::OperationQuadrature> opQ(
       sgpp::op_factory::createOperationQuadrature(*grid));
   double res = opQ->doQuadrature(alpha);
-  return res;
-
-  // Monte Carlo quadrature using 100000 paths
-  sgpp::base::OperationQuadratureMC opMC(*grid, 100000);
-  res = opMC.doQuadrature(alpha);
-  // return res;
-  // std::cout << "Monte Carlo value:     " << res << std::endl;
-  // res = opMC.doQuadrature(alpha);
-  // std::cout << "Monte Carlo value:     " << res << std::endl;
-
-  // Monte Carlo quadrature of a function
-  // res = opMC.doQuadratureFunc(funct, nullptr);
-  // std::cout << "MC value:              " << res << std::endl;
-
-  // Monte Carlo quadrature of error
-  // res = opMC.doQuadratureL2Error(funct, nullptr, alpha);
-  // std::cout << "MC L2-error:           " << res << std::endl;
+  return res * prod;
 }
 // work in progress
 double PolynomialChaosExpansion::adaptiveQuadrature(
-    std::function<double(const base::DataVector&)> funct) {
-  auto numfunc = [funct](int dim, double* input, void* clientdata) {
-    return funct(base::DataVector(input, dim));
+    std::function<double(const base::DataVector&)> funct, int dim, int level, int steps) {
+  auto numfunc = [&funct](const base::DataVector& input,
+                          std::vector<std::pair<double, double>>& ranges) {
+    base::DataVector temp(input.size());
+    for (int i = 0; i < input.size(); ++i) {
+      temp[i] = (input[i]) * (ranges[i].second - ranges[i].first) + ranges[i].first;
+    }
+    return funct(temp);
   };
-
-  auto dim = static_cast<int>(types.size());
   std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearGrid(dim));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
 
-  int level = 1;
   grid->getGenerator().regular(level);
 
   /**
@@ -264,8 +249,6 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
    * Initially, all the values are set to zero.
    */
   base::DataVector alpha(gridStorage.getSize());
-
-  // std::cout << "length of alpha vector:           " << alpha.getSize() << std::endl;
 
   /**
    * Create a vector for storing (possibly expensive) function evaluations at
@@ -278,7 +261,7 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
     for (int j = 0; j < dim; ++j) {
       vec[j] = gp.getStandardCoordinate(j);
     }
-    funEvals[i] = funct(vec);
+    funEvals[i] = numfunc(vec, ranges);
   }
 
   /**
@@ -289,7 +272,7 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
   /**
    * Refine adaptively 5 times.
    */
-  for (int step = 0; step < 5; step++) {
+  for (int step = 0; step < steps; step++) {
     /**
      * Refine a single grid point each time.
      * The SurplusRefinementFunctor chooses the grid point with the highest absolute surplus.
@@ -319,7 +302,7 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
       for (int j = 0; j < dim; ++j) {
         vec[j] = gp.getStandardCoordinate(j);
       }
-      funEvals[seq] = funct(vec);
+      funEvals[seq] = numfunc(vec, ranges);
     }
 
     /**
@@ -341,9 +324,9 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
     // std::cout << "refinement step " << step + 1 << ", new grid size: " << alpha.getSize() <<
     // std::endl;
   }
-  for (size_t i = 0; i < alpha.getSize(); i++) {
-    std::cout << alpha[i] << std::endl;
-  }
+  // for (size_t i = 0; i < alpha.getSize(); i++) {
+  //  std::cout << alpha[i] << std::endl;
+  //}
 
   /**
    * Calculate the surplus vector alpha for the interpolant of \f$
@@ -368,31 +351,16 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
         sgpp::op_factory::createOperationHierarchisation(*grid))
         ->doHierarchisation(alpha);
   */
-  /**
-   * Now we compute and compare the quadrature using four different methods available in SG++.
-   */
 
+  double prod = 1;
+  for (auto pair : ranges) {
+    prod *= (pair.second - pair.first);
+  }
   // direct quadrature
   std::unique_ptr<sgpp::base::OperationQuadrature> opQ(
       sgpp::op_factory::createOperationQuadrature(*grid));
   double res = opQ->doQuadrature(alpha);
-  return res;
-
-  // Monte Carlo quadrature using 100000 paths
-  sgpp::base::OperationQuadratureMC opMC(*grid, 100000);
-  res = opMC.doQuadrature(alpha);
-  // return res;
-  // std::cout << "Monte Carlo value:     " << res << std::endl;
-  // res = opMC.doQuadrature(alpha);
-  // std::cout << "Monte Carlo value:     " << res << std::endl;
-
-  // Monte Carlo quadrature of a function
-  // res = opMC.doQuadratureFunc(funct, nullptr);
-  // std::cout << "MC value:              " << res << std::endl;
-
-  // Monte Carlo quadrature of error
-  // res = opMC.doQuadratureL2Error(funct, nullptr, alpha);
-  // std::cout << "MC L2-error:           " << res << std::endl;
+  return res * prod;
 }
 
 std::vector<std::vector<int>> PolynomialChaosExpansion::multiIndex(int dimension, int order) {
@@ -428,24 +396,30 @@ base::DataVector PolynomialChaosExpansion::calculateCoefficients() {
   // calculate aj for each entry in the multiindex
   for (std::vector<std::vector<double>>::size_type j = 0; j < index.size(); ++j) {
     // lambdas for composite function to be integrated
-    auto numfunc = [this, index, j](const base::DataVector& vec) {
+    auto numfunc = [this, &index, j](const base::DataVector& vec) {
       double prd = 1;
       for (std::vector<double>::size_type i = 0; i < vec.getSize(); ++i) {
-        prd *= evals[types[i]](index[j][i], vec[i]) * weights[types[i]](vec[i]);
+        prd *= evals[static_cast<int>(types[i])](index[j][i], vec[i]) *
+               weights[static_cast<int>(types[i])](vec[i]);
       }
       return prd;
     };
-    auto intfunc = [this, numfunc](const base::DataVector& vec) {
+    auto intfunc = [this, &numfunc](const base::DataVector& vec) {
       return numfunc(vec) * func(vec);
     };
     // integrate above function using mc
-    double num = monteCarloQuad(intfunc, 10000000);
+    // double num = monteCarloQuad(intfunc, 10000000);
+
     // integrate using sparsegrids
-    // double num = sparseGridQuadrature(intfunc);
+    // double num = sparseGridQuadrature(intfunc, static_cast<int>(types.size()), 15);
+
+    // integrate using adaptive sparsegrids
+    double num = adaptiveQuadrature(intfunc, static_cast<int>(types.size()), 8, 10);
+
     // calculate denominator
     double denom = 1.0;
     for (std::vector<distributionType>::size_type i = 0; i < types.size(); ++i) {
-      denom *= denoms[types[i]](index[j][i]);
+      denom *= denoms[static_cast<int>(types[i])](index[j][i]);
     }
     double aj = num / denom;
     result[j] = aj;
@@ -464,11 +438,13 @@ double PolynomialChaosExpansion::evalExpansion(const base::DataVector& xi) {
   for (std::vector<std::vector<int>>::size_type j = 0; j < index.size(); ++j) {
     double prod = 1.0;
     for (std::vector<double>::size_type i = 0; i < index[j].size(); ++i) {
-      prod *= evals[types[i]](index[j][i], xi[i]);
+      prod *= evals[static_cast<int>(types[i])](index[j][i], xi[i]);
     }
     sum += prod * coefficients[j];
   }
   return sum;
 }
+// sample target and compare to pce eval
+double PolynomialChaosExpansion::getL2Error() { return 0.0; }
 }  // namespace datadriven
 }  // namespace sgpp

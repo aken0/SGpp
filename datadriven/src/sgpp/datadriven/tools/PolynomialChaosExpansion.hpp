@@ -19,7 +19,7 @@
 #endif
 namespace sgpp {
 namespace datadriven {
-enum distributionType { Normal, Beta, Uniform, Exponential, Gamma };
+enum class distributionType { Normal, Beta, Uniform, Exponential, Gamma };
 class PolynomialChaosExpansion {
   std::function<double(const base::DataVector&)> func;
   int order;
@@ -38,6 +38,7 @@ class PolynomialChaosExpansion {
   std::vector<std::function<double(double)>> weights;
   std::vector<std::function<double(double)>> denoms;
   std::vector<std::function<double(double, double)>> evals;
+  std::vector<std::vector<int>> multiIndex(int dimension, int order);
 
  public:
   PolynomialChaosExpansion(std::function<double(const base::DataVector&)> func, int order,
@@ -45,16 +46,16 @@ class PolynomialChaosExpansion {
                            std::vector<std::pair<double, double>> ranges, double alpha = 0.0,
                            double beta = 0.0);
   ~PolynomialChaosExpansion();
-  // move to private
 
-  std::vector<std::vector<int>> multiIndex(int dimension, int order);
   double monteCarloQuad(std::function<double(const base::DataVector&)> funct, size_t n);
-  double sparseGridQuadrature(std::function<double(const base::DataVector&)> funct);
-  // double sparseGridQuadrature(base::FUNC);
-  double adaptiveQuadrature(std::function<double(const base::DataVector&)> funct);
+  double sparseGridQuadrature(std::function<double(const base::DataVector&)> funct, int dim,
+                              int level);
+  double adaptiveQuadrature(std::function<double(const base::DataVector&)> funct, int dim,
+                            int level, int steps);
   base::DataVector calculateCoefficients();
   base::DataVector getCoefficients();
   double evalExpansion(const base::DataVector& xi);
+  double getL2Error();
 };
 }  // namespace datadriven
 }  // namespace sgpp

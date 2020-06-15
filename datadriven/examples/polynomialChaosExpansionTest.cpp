@@ -1,6 +1,7 @@
 #include <math.h>
 
 #include <cmath>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <sgpp/datadriven/tools/PolynomialChaosExpansion.hpp>
@@ -11,27 +12,64 @@
 
 #include "sgpp/base/datatypes/DataVector.hpp"
 // function to be integrated
-double e(const sgpp::base::DataVector& vec) {
-  return std::pow(vec.get(0), 2) + std::pow(vec.get(1), 3);
+double e(const sgpp::base::DataVector& vec) { return vec[0] * vec[0] * vec[0] - vec[0] * vec[0]; }
+double f(const sgpp::base::DataVector& vec) { return 1.0; }
+double g(const sgpp::base::DataVector& vec) {
+  return 1 + (std::sin(vec[0]) + std::cos(vec[0])) / std::exp(vec[0]);
 }
 int main() {
   sgpp::datadriven::PolynomialChaosExpansion ee = sgpp::datadriven::PolynomialChaosExpansion(
-      e, 4,
-      std::vector<sgpp::datadriven::distributionType>{sgpp::datadriven::distributionType::Uniform,
-                                                      sgpp::datadriven::distributionType::Uniform},
-      std::vector<std::pair<double, double>>{std::pair<double, double>{-1, 1},
-                                             std::pair<double, double>{-1, 1}},
+      e, 5,
+      std::vector<sgpp::datadriven::distributionType>{sgpp::datadriven::distributionType::Uniform},
+      std::vector<std::pair<double, double>>{
+          std::pair<double, double>{-1, 1},
+      },
       0, 0);
-  std::cout << "integral: " << ee.monteCarloQuad(e, 1000000) << std::endl;
-  std::cout << "integral: " << ee.sparseGridQuadrature(e) << std::endl;
-  std::cout << "coefficients: " << std::endl;
-  ee.calculateCoefficients();
-  auto stuff = ee.getCoefficients();
-  for (auto entry : stuff) {
-    std::cout << entry << " ";
+  // std::cout << "integral(monteCarloQuad): " << ee.monteCarloQuad(e, 1000000) << std::endl;
+  // std::cout << "integral(sparseGridQuadrature): " << ee.sparseGridQuadrature(e, 1, 2) << '\n';
+  // std::cout << "integral(adaptiveQuadrature): " << ee.adaptiveQuadrature(e, 1, 2, 5) << '\n';
+  std::fstream of;
+  std::string path;
+  std::cout << "enter path: " << '\n';
+  std::cin >> path;
+  of.open("data/" + path + ".txt", std::ios::out | std::ios::trunc);
+  of << std::fixed;
+  of << std::setprecision(9);
+  int iters = 24;
+  for (int i = 2; i < iters; ++i) {
+    auto re = ee.sparseGridQuadrature(e, 1, i);
+    of << re << ',';
+    std::cout << i << '\n';
   }
-  std::cout << std::endl;
-  std::cout << "evaluation at (2,2): " << ee.evalExpansion(sgpp::base::DataVector{2, 2})
-            << std::endl;
+  of << '\n';
+  for (int i = 2; i < iters; ++i) {
+    auto re = ee.sparseGridQuadrature(f, 1, i);
+    of << re << ',';
+    std::cout << i << '\n';
+  }
+  of << '\n';
+  for (int i = 2; i < iters; ++i) {
+    auto re = ee.sparseGridQuadrature(g, 1, i);
+    of << re << ',';
+    std::cout << i << '\n';
+  }
+  of << '\n';
+  /*
+  for (int i = 2; i < 15; ++i) {
+    of << ee.adaptiveQuadrature(e, 2, i, 5) << ',';
+    std::cout << i << '\n';
+  }*/
+  of.close();
+  /*
+  std::cout << "coefficients: " << std::endl;
+    ee.calculateCoefficients();
+    auto stuff = ee.getCoefficients();
+    for (auto entry : stuff) {
+      std::cout << entry << " ";
+    }
+    std::cout << std::endl;
+    std::cout << "evaluation at (2,2): " << ee.evalExpansion(sgpp::base::DataVector{2, 2})
+              << std::endl;
+              */
   return 0;
 }
