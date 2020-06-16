@@ -152,7 +152,6 @@ double PolynomialChaosExpansion::evalGenLaguerre(int n, double x) {
   }
   return 0;
 }
-// todo?
 double PolynomialChaosExpansion::monteCarloQuad(
     std::function<double(const base::DataVector&)> funct, size_t n) {
   std::vector<std::uniform_real_distribution<double>> dists(ranges.size());
@@ -178,16 +177,18 @@ double PolynomialChaosExpansion::monteCarloQuad(
   std::generate(results.begin(), results.end(), gen);
   return factor * results.sum();
 }
-
+// wip
 double PolynomialChaosExpansion::sparseGridQuadrature(
     std::function<double(const base::DataVector&)> funct, int dim, int level) {
-  auto numfunc = [&funct](base::DataVector& input, std::vector<std::pair<double, double>>& ranges) {
+  auto numfunc = [&funct](const base::DataVector& input,
+                          std::vector<std::pair<double, double>>& ranges) {
+    base::DataVector temp(input.size());
     for (int i = 0; i < input.size(); ++i) {
-      input[i] = (input[i]) * (ranges[i].second - ranges[i].first) + ranges[i].first;
+      temp[i] = input[i] * (ranges[i].second - ranges[i].first) + ranges[i].first;
     }
-    return funct(input);
+    return funct(temp);
   };
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearBoundaryGrid(dim));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   // std::cout << "dimensionality:        " << gridStorage.getDimension() << std::endl;
 
@@ -202,30 +203,38 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
    * hierarchization to obtain the surplus value.
    *
    */
-
-  sgpp::base::DataVector alpha(gridStorage.getSize());
+  sgpp::base::DataVector evals(gridStorage.getSize());
   base::DataVector p(dim);
-
   for (size_t i = 0; i < gridStorage.getSize(); i++) {
     sgpp::base::GridPoint& gp = gridStorage.getPoint(i);
     for (int j = 0; j < dim; ++j) {
       p[j] = gp.getStandardCoordinate(j);
     }
-    alpha[i] = numfunc(p, ranges);
+    evals[i] = numfunc(p, ranges);
   }
+  std::cout << "Hierarchizing...\n\n";
+  sgpp::base::DataVector coeffs(evals.getSize());
+  sgpp::base::HierarchisationSLE hierSLE(*grid);
+  sgpp::base::sle_solver::Eigen sleSolver;
 
-  std::unique_ptr<base::OperationHierarchisation>(
+  // solve linear system
+  if (!sleSolver.solve(hierSLE, evals, coeffs)) {
+    std::cout << "Solving failed, exiting.\n";
+    return 1;
+  }
+  /*std::unique_ptr<base::OperationHierarchisation>(
       sgpp::op_factory::createOperationHierarchisation(*grid))
       ->doHierarchisation(alpha);
+      */
 
+  // direct quadrature
+  std::unique_ptr<sgpp::base::OperationQuadrature> opQ(
+      sgpp::op_factory::createOperationQuadrature(*grid));
+  double res = opQ->doQuadrature(coeffs);
   double prod = 1;
   for (auto pair : ranges) {
     prod *= (pair.second - pair.first);
   }
-  // direct quadrature
-  std::unique_ptr<sgpp::base::OperationQuadrature> opQ(
-      sgpp::op_factory::createOperationQuadrature(*grid));
-  double res = opQ->doQuadrature(alpha);
   return res * prod;
 }
 // work in progress
@@ -239,6 +248,7 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
     }
     return funct(temp);
   };
+
   std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearGrid(dim));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
 

@@ -35,7 +35,7 @@ int main() {
   of.open("data/" + path + ".txt", std::ios::out | std::ios::trunc);
   of << std::fixed;
   of << std::setprecision(9);
-  int iters = 24;
+  int iters = 12;
   for (int i = 2; i < iters; ++i) {
     auto re = ee.sparseGridQuadrature(e, 1, i);
     of << re << ',';

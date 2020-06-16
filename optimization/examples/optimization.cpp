@@ -20,12 +20,11 @@
  * First, we include all the necessary headers, including those of the sgpp::base and
  * sgpp::optimization module.
  */
-#include <sgpp_base.hpp>
-#include <sgpp_optimization.hpp>
-
 #include <algorithm>
 #include <iostream>
 #include <iterator>
+#include <sgpp_base.hpp>
+#include <sgpp_optimization.hpp>
 
 /**
  * The function \f$f\colon [0, 1]^d \to \mathbb{R}\f$ to be minimized
