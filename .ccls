@@ -1,0 +1,11 @@
+g++
+--gcc-toolchain=/usr
+-c
+-std=c++11
+-fopenmp
+-Isgpp/base/src
+-Isgpp/datadriven/src
+-Isgpp/optimization/src
+-otutorial.o
+
+tutorial.cpp
