@@ -12,16 +12,18 @@
 
 #include "sgpp/base/datatypes/DataVector.hpp"
 // function to be integrated
-double e(const sgpp::base::DataVector& vec) { return vec[0] * vec[0] * vec[0] - vec[0] * vec[0]; }
+double e(const sgpp::base::DataVector& vec) { return vec[0] * vec[0] * vec[0] - vec[1] * vec[1]; }
 double f(const sgpp::base::DataVector& vec) { return 1.0; }
 double g(const sgpp::base::DataVector& vec) {
-  return 1 + (std::sin(vec[0]) + std::cos(vec[0])) / std::exp(vec[0]);
+  return 1 + (std::sin(vec[0]) + std::cos(vec[1])) / std::exp(vec[1]);
 }
 int main() {
   sgpp::datadriven::PolynomialChaosExpansion ee = sgpp::datadriven::PolynomialChaosExpansion(
       e, 5,
-      std::vector<sgpp::datadriven::distributionType>{sgpp::datadriven::distributionType::Uniform},
+      std::vector<sgpp::datadriven::distributionType>{sgpp::datadriven::distributionType::Uniform,
+                                                      sgpp::datadriven::distributionType::Uniform},
       std::vector<std::pair<double, double>>{
+          std::pair<double, double>{-1, 1},
           std::pair<double, double>{-1, 1},
       },
       0, 0);
@@ -35,21 +37,22 @@ int main() {
   of.open("data/" + path + ".txt", std::ios::out | std::ios::trunc);
   of << std::fixed;
   of << std::setprecision(9);
-  int iters = 12;
-  for (int i = 2; i < iters; ++i) {
-    auto re = ee.sparseGridQuadrature(e, 1, i);
+  int iters = 10;
+  int dim = 2;
+  for (int i = 2; i <= iters; ++i) {
+    auto re = ee.sparseGridQuadrature(e, dim, i);
     of << re << ',';
     std::cout << i << '\n';
   }
   of << '\n';
-  for (int i = 2; i < iters; ++i) {
-    auto re = ee.sparseGridQuadrature(f, 1, i);
+  for (int i = 2; i <= iters; ++i) {
+    auto re = ee.sparseGridQuadrature(f, dim, i);
     of << re << ',';
     std::cout << i << '\n';
   }
   of << '\n';
-  for (int i = 2; i < iters; ++i) {
-    auto re = ee.sparseGridQuadrature(g, 1, i);
+  for (int i = 2; i <= iters; ++i) {
+    auto re = ee.sparseGridQuadrature(g, dim, i);
     of << re << ',';
     std::cout << i << '\n';
   }

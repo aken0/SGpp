@@ -188,7 +188,7 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
     }
     return funct(temp);
   };
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearBoundaryGrid(dim));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createBsplineBoundaryGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   // std::cout << "dimensionality:        " << gridStorage.getDimension() << std::endl;
 
@@ -212,8 +212,21 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
     }
     evals[i] = numfunc(p, ranges);
   }
+  bool succHierarch = false;
+  /*
+  try {
+    std::unique_ptr<base::OperationHierarchisation>(
+        sgpp::op_factory::createOperationHierarchisation(*grid))
+        ->doHierarchisation(evals);
+        succHierarch=true;
+
+  } catch (...) {
+    succHierarch = false;
+  }
+  */
+  base::DataVector coeffs(evals.getSize());
+  // if (!succHierarch) {
   std::cout << "Hierarchizing...\n\n";
-  sgpp::base::DataVector coeffs(evals.getSize());
   sgpp::base::HierarchisationSLE hierSLE(*grid);
   sgpp::base::sle_solver::Eigen sleSolver;
 
@@ -222,15 +235,17 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
     std::cout << "Solving failed, exiting.\n";
     return 1;
   }
-  /*std::unique_ptr<base::OperationHierarchisation>(
-      sgpp::op_factory::createOperationHierarchisation(*grid))
-      ->doHierarchisation(alpha);
-      */
+  //}
 
   // direct quadrature
   std::unique_ptr<sgpp::base::OperationQuadrature> opQ(
       sgpp::op_factory::createOperationQuadrature(*grid));
-  double res = opQ->doQuadrature(coeffs);
+  double res;
+  if (succHierarch) {
+    res = opQ->doQuadrature(evals);
+  } else {
+    res = opQ->doQuadrature(coeffs);
+  }
   double prod = 1;
   for (auto pair : ranges) {
     prod *= (pair.second - pair.first);
