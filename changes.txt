@@ -1,0 +1,20 @@
+diff --git a/datadriven/examples/MR_TestingExtendedBsplines.cpp b/datadriven/examples/MR_TestingExtendedBsplines.cpp
+--- a/datadriven/examples/MR_TestingExtendedBsplines.cpp
+diff --git a/datadriven/examples/MR_TestingSpatialRefinementBlocked.cpp b/datadriven/examples/MR_TestingSpatialRefinementBlocked.cpp
+--- a/datadriven/examples/MR_TestingSpatialRefinementBlocked.cpp
+diff --git a/datadriven/src/sgpp/datadriven/activeSubspaces/ASMatrixBspline.cpp b/datadriven/src/sgpp/datadriven/activeSubspaces/ASMatrixBspline.cpp
+--- a/datadriven/src/sgpp/datadriven/activeSubspaces/ASMatrixBspline.cpp
+diff --git a/datadriven/src/sgpp/datadriven/activeSubspaces/ASResponseSurfaceNakBspline.cpp b/datadriven/src/sgpp/datadriven/activeSubspaces/ASResponseSurfaceNakBspline.cpp
+--- a/datadriven/src/sgpp/datadriven/activeSubspaces/ASResponseSurfaceNakBspline.cpp
+diff --git a/datadriven/src/sgpp/datadriven/activeSubspaces/ASResponseSurfaceNakBspline.hpp b/datadriven/src/sgpp/datadriven/activeSubspaces/ASResponseSurfaceNakBspline.hpp
+--- a/datadriven/src/sgpp/datadriven/activeSubspaces/ASResponseSurfaceNakBspline.hpp
+diff --git a/datadriven/src/sgpp/datadriven/activeSubspaces/EigenFunctionalities.hpp b/datadriven/src/sgpp/datadriven/activeSubspaces/EigenFunctionalities.hpp
+--- a/datadriven/src/sgpp/datadriven/activeSubspaces/EigenFunctionalities.hpp
+diff --git a/datadriven/src/sgpp/datadriven/activeSubspaces/MSplineNakBsplineScalarProducts.hpp b/datadriven/src/sgpp/datadriven/activeSubspaces/MSplineNakBsplineScalarProducts.hpp
+--- a/datadriven/src/sgpp/datadriven/activeSubspaces/MSplineNakBsplineScalarProducts.hpp
+diff --git a/datadriven/src/sgpp/datadriven/activeSubspaces/NakBsplineScalarProducts.hpp b/datadriven/src/sgpp/datadriven/activeSubspaces/NakBsplineScalarProducts.hpp
+--- a/datadriven/src/sgpp/datadriven/activeSubspaces/NakBsplineScalarProducts.hpp
+diff --git a/datadriven/src/sgpp/datadriven/application/RegressionLearner.cpp b/datadriven/src/sgpp/datadriven/application/RegressionLearner.cpp
+--- a/datadriven/src/sgpp/datadriven/application/RegressionLearner.cpp
+diff --git a/datadriven/src/sgpp/datadriven/application/RegressionLearner.hpp b/datadriven/src/sgpp/datadriven/application/RegressionLearner.hpp
+--- a/datadriven/src/sgpp/datadriven/application/RegressionLearner.hpp
