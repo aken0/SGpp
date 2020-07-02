@@ -4,13 +4,13 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <sgpp/base/datatypes/DataVector.hpp>
 #include <sgpp/datadriven/tools/PolynomialChaosExpansion.hpp>
 #include <sgpp/globaldef.hpp>
 #include <sgpp_base.hpp>
+#include <string>
 #include <utility>
 #include <vector>
-
-#include "sgpp/base/datatypes/DataVector.hpp"
 // function to be integrated
 double e(const sgpp::base::DataVector& vec) { return vec[0] * vec[0] * vec[0] - vec[1] * vec[1]; }
 double f(const sgpp::base::DataVector& vec) { return 1.0; }
@@ -37,22 +37,23 @@ int main() {
   of.open("data/" + path + ".txt", std::ios::out | std::ios::trunc);
   of << std::fixed;
   of << std::setprecision(9);
-  int iters = 8;
+  int iters = 5;
   int dim = 2;
+  ee.printAdaptiveGridHelper(e, dim, 5, 5, "data/" + path + "(level).txt");
   for (int i = 2; i <= iters; ++i) {
-    auto re = ee.sparseGridQuadrature(e, dim, i);
+    auto re = ee.adaptiveQuadrature(e, dim, i, 5);
     of << re << ',';
     std::cout << i << '\n';
   }
   of << '\n';
   for (int i = 2; i <= iters; ++i) {
-    auto re = ee.sparseGridQuadrature(f, dim, i);
+    auto re = ee.adaptiveQuadrature(f, dim, i, 5);
     of << re << ',';
     std::cout << i << '\n';
   }
   of << '\n';
   for (int i = 2; i <= iters; ++i) {
-    auto re = ee.sparseGridQuadrature(g, dim, i);
+    auto re = ee.adaptiveQuadrature(g, dim, i, 5);
     of << re << ',';
     std::cout << i << '\n';
   }

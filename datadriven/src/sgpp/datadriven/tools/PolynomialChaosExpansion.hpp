@@ -13,7 +13,6 @@
 #include <utility>
 #include <vector>
 
-#include "sgpp/base/tools/OperationQuadratureMC.hpp"
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -56,6 +55,10 @@ class PolynomialChaosExpansion {
   base::DataVector getCoefficients();
   double evalExpansion(const base::DataVector& xi);
   double getL2Error();
+  void printGridHelper(std::function<double(const base::DataVector&)> funct, int dim, int level,
+                       std::string tFilename);
+  void printAdaptiveGridHelper(std::function<double(const base::DataVector&)> funct, int dim,
+                               int level, int steps, std::string tFilename);
 };
 }  // namespace datadriven
 }  // namespace sgpp

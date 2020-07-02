@@ -10,6 +10,7 @@
 #include <numeric>
 #include <random>
 #include <sgpp/base/datatypes/DataVector.hpp>
+#include <sgpp/base/tools/GridPrinter.hpp>
 #include <sgpp/datadriven/tools/PolynomialChaosExpansion.hpp>
 #include <sgpp/globaldef.hpp>
 #include <sgpp_base.hpp>
@@ -177,7 +178,163 @@ double PolynomialChaosExpansion::monteCarloQuad(
   std::generate(results.begin(), results.end(), gen);
   return factor * results.sum();
 }
-// wip
+
+void PolynomialChaosExpansion::printGridHelper(std::function<double(const base::DataVector&)> funct,
+                                               int dim, int level, std::string tFilename) {
+  auto numfunc = [&funct](const base::DataVector& input,
+                          std::vector<std::pair<double, double>>& ranges) {
+    base::DataVector temp(input.size());
+    for (int i = 0; i < input.size(); ++i) {
+      temp[i] = input[i] * (ranges[i].second - ranges[i].first) + ranges[i].first;
+    }
+    return funct(temp);
+  };
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearBoundaryGrid(dim));
+  sgpp::base::GridStorage& gridStorage = grid->getStorage();
+  grid->getGenerator().regular(level);
+  std::ofstream fileout;
+  fileout.open(tFilename.c_str());
+  for (size_t i = 0; i < grid->getSize(); ++i) {
+    auto coords = grid->getStorage().getCoordinates(grid->getStorage().getPoint(i));
+    for (size_t j = 0; j < grid->getDimension(); ++j) {
+      fileout << coords.get(j);
+      if (j < grid->getDimension() - 1) {
+        fileout << ',';
+      }
+    }
+    fileout << '\n';
+  }
+}
+void PolynomialChaosExpansion::printAdaptiveGridHelper(
+    std::function<double(const base::DataVector&)> funct, int dim, int level, int steps,
+    std::string tFilename) {
+  auto numfunc = [&funct](const base::DataVector& input,
+                          std::vector<std::pair<double, double>>& ranges) {
+    base::DataVector temp(input.size());
+    for (int i = 0; i < input.size(); ++i) {
+      temp[i] = input[i] * (ranges[i].second - ranges[i].first) + ranges[i].first;
+    }
+    return funct(temp);
+  };
+
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearGrid(dim));
+  sgpp::base::GridStorage& gridStorage = grid->getStorage();
+
+  grid->getGenerator().regular(level);
+
+  /**
+   * Create coefficient vector with size corresponding to the grid size.
+   * Initially, all the values are set to zero.
+   */
+  base::DataVector alpha(gridStorage.getSize());
+
+  /**
+   * Create a vector for storing (possibly expensive) function evaluations at
+   * each gridpoint.
+   */
+  base::DataVector funEvals(gridStorage.getSize());
+  for (size_t i = 0; i < gridStorage.getSize(); i++) {
+    base::GridPoint& gp = gridStorage.getPoint(i);
+    base::DataVector vec(dim);
+    for (int j = 0; j < dim; ++j) {
+      vec[j] = gp.getStandardCoordinate(j);
+    }
+    funEvals[i] = numfunc(vec, ranges);
+  }
+
+  /**
+   * create a vector for storing newly added points by their sequence id.
+   */
+  std::vector<size_t> addedPoints;
+
+  /**
+   * Refine adaptively #steps times.
+   */
+  for (int step = 0; step < steps; step++) {
+    /**
+     * Refine a single grid point each time.
+     * The SurplusRefinementFunctor chooses the grid point with the highest absolute surplus.
+     * Refining the point means, that all children of this point (if not already present) are
+     * added to the grid. Also all missing parents are added (recursively).
+     * All new points are appended to the addedPoints vector.
+     */
+    base::SurplusRefinementFunctor functor(alpha, 1);
+    grid->getGenerator().refine(functor, &addedPoints);
+
+    /**
+     * Extend alpha and funEval vector (new entries uninitialized). Note that right now, the size
+     * of both vectors
+     * matches number of gridpoints again, but the values of the new points are set to zero.
+     */
+    alpha.resize(gridStorage.getSize());
+    funEvals.resize(gridStorage.getSize());
+
+    /**
+     * Evaluate the function f at the newly created gridpoints and set the
+     * corresponding entries in the funEval vector with these values.
+     */
+    for (size_t i = 0; i < addedPoints.size(); i++) {
+      size_t seq = addedPoints[i];
+      base::GridPoint& gp = gridStorage.getPoint(seq);
+      base::DataVector vec(dim);
+      for (int j = 0; j < dim; ++j) {
+        vec[j] = gp.getStandardCoordinate(j);
+      }
+      funEvals[seq] = numfunc(vec, ranges);
+    }
+
+    /**
+     * Reset the alpha vector to function evals to prepare for hierarchisation.
+     */
+    alpha.copyFrom(funEvals);
+
+    // try hierarchisation
+    bool succHierarch = false;
+
+    try {
+      std::unique_ptr<base::OperationHierarchisation>(
+          sgpp::op_factory::createOperationHierarchisation(*grid))
+
+          ->doHierarchisation(alpha);
+      succHierarch = true;
+
+    } catch (...) {
+      succHierarch = false;
+    }
+
+    if (!succHierarch) {
+      std::cout << "Hierarchizing...\n\n";
+      sgpp::base::HierarchisationSLE hierSLE(*grid);
+      sgpp::base::sle_solver::Eigen sleSolver;
+
+      // solve linear system
+      if (!sleSolver.solve(hierSLE, funEvals, alpha)) {
+        std::cout << "Solving failed, exiting.\n";
+        return;
+      }
+    }
+    /**
+     * Clear the addedPoints vector for the next iteration.
+     */
+    addedPoints.clear();
+
+    // std::cout << "refinement step " << step + 1 << ", new grid size: " << alpha.getSize() <<
+    // std::endl;
+  }
+  std::ofstream fileout;
+  fileout.open(tFilename.c_str());
+  for (size_t i = 0; i < grid->getSize(); ++i) {
+    auto coords = grid->getStorage().getCoordinates(grid->getStorage().getPoint(i));
+    for (size_t j = 0; j < grid->getDimension(); ++j) {
+      fileout << coords.get(j);
+      if (j < grid->getDimension() - 1) {
+        fileout << ',';
+      }
+    }
+    fileout << '\n';
+  }
+}
+
 double PolynomialChaosExpansion::sparseGridQuadrature(
     std::function<double(const base::DataVector&)> funct, int dim, int level) {
   auto numfunc = [&funct](const base::DataVector& input,
@@ -213,29 +370,30 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
     evals[i] = numfunc(p, ranges);
   }
   bool succHierarch = false;
-  /*
+
   try {
     std::unique_ptr<base::OperationHierarchisation>(
         sgpp::op_factory::createOperationHierarchisation(*grid))
+
         ->doHierarchisation(evals);
-        succHierarch=true;
+    succHierarch = true;
 
   } catch (...) {
     succHierarch = false;
   }
-  */
-  base::DataVector coeffs(evals.getSize());
-  // if (!succHierarch) {
-  std::cout << "Hierarchizing...\n\n";
-  sgpp::base::HierarchisationSLE hierSLE(*grid);
-  sgpp::base::sle_solver::Eigen sleSolver;
 
-  // solve linear system
-  if (!sleSolver.solve(hierSLE, evals, coeffs)) {
-    std::cout << "Solving failed, exiting.\n";
-    return 1;
+  base::DataVector coeffs(evals.getSize());
+  if (!succHierarch) {
+    std::cout << "Hierarchizing...\n\n";
+    sgpp::base::HierarchisationSLE hierSLE(*grid);
+    sgpp::base::sle_solver::Eigen sleSolver;
+
+    // solve linear system
+    if (!sleSolver.solve(hierSLE, evals, coeffs)) {
+      std::cout << "Solving failed, exiting.\n";
+      return 1;
+    }
   }
-  //}
 
   // direct quadrature
   std::unique_ptr<sgpp::base::OperationQuadrature> opQ(
@@ -295,7 +453,7 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
   std::vector<size_t> addedPoints;
 
   /**
-   * Refine adaptively 5 times.
+   * Refine adaptively #steps times.
    */
   for (int step = 0; step < steps; step++) {
     /**
@@ -335,12 +493,31 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
      */
     alpha.copyFrom(funEvals);
 
-    /**
-     * Each time, we have to hierarchize the grid again, because in the previous interation,
-     * new grid points have been added.
-     */
-    sgpp::op_factory::createOperationHierarchisation(*grid)->doHierarchisation(alpha);
+    // try hierarchisation
+    bool succHierarch = false;
 
+    try {
+      std::unique_ptr<base::OperationHierarchisation>(
+          sgpp::op_factory::createOperationHierarchisation(*grid))
+
+          ->doHierarchisation(alpha);
+      succHierarch = true;
+
+    } catch (...) {
+      succHierarch = false;
+    }
+
+    if (!succHierarch) {
+      std::cout << "Hierarchizing...\n\n";
+      sgpp::base::HierarchisationSLE hierSLE(*grid);
+      sgpp::base::sle_solver::Eigen sleSolver;
+
+      // solve linear system
+      if (!sleSolver.solve(hierSLE, funEvals, alpha)) {
+        std::cout << "Solving failed, exiting.\n";
+        return 1;
+      }
+    }
     /**
      * Clear the addedPoints vector for the next iteration.
      */
@@ -352,30 +529,6 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
   // for (size_t i = 0; i < alpha.getSize(); i++) {
   //  std::cout << alpha[i] << std::endl;
   //}
-
-  /**
-   * Calculate the surplus vector alpha for the interpolant of \f$
-   * f(x)\f$.  Since the function can be evaluated at any
-   * point. Hence. we simply evaluate it at the coordinates of the
-   * grid points to obtain the nodal values. Then we use
-   * hierarchization to obtain the surplus value.
-   *
-   */
-  /**
-    sgpp::base::DataVector alpha(gridStorage.getSize());
-    double p[2];
-
-    for (size_t i = 0; i < gridStorage.getSize(); i++) {
-      sgpp::base::GridPoint& gp = gridStorage.getPoint(i);
-      p[0] = gp.getStandardCoordinate(0);
-      p[1] = gp.getStandardCoordinate(1);
-      alpha[i] = numfunc(2, p, nullptr);
-    }
-
-    std::unique_ptr<base::OperationHierarchisation>(
-        sgpp::op_factory::createOperationHierarchisation(*grid))
-        ->doHierarchisation(alpha);
-  */
 
   double prod = 1;
   for (auto pair : ranges) {
