@@ -25,7 +25,6 @@ int main() {
           std::pair<double, double>{-1, 1},
       },
       0, 0);
-
   std::fstream of;
   std::string path;
   std::cout << "enter path: " << '\n';
