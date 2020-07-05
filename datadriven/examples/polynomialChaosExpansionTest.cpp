@@ -30,6 +30,10 @@ int main() {
   // std::cout << "integral(monteCarloQuad): " << ee.monteCarloQuad(e, 1000000) << std::endl;
   // std::cout << "integral(sparseGridQuadrature): " << ee.sparseGridQuadrature(e, 1, 2) << '\n';
   // std::cout << "integral(adaptiveQuadrature): " << ee.adaptiveQuadrature(e, 1, 2, 5) << '\n';
+  std::cout << "L2: " << '\n';
+  for (int i = 2; i < 18; ++i) {
+    std::cout << ee.sparseGridQuadratureL2(e, 2, i) << '\n';
+  }
   std::fstream of;
   std::string path;
   std::cout << "enter path: " << '\n';
@@ -37,9 +41,9 @@ int main() {
   of.open("data/" + path + ".txt", std::ios::out | std::ios::trunc);
   of << std::fixed;
   of << std::setprecision(9);
-  int iters = 5;
+  int iters = 0;
   int dim = 2;
-  ee.printAdaptiveGridHelper(e, dim, 5, 5, "data/" + path + "(level).txt");
+  // ee.printAdaptiveGrid(e, dim, 5, 5, "data/" + path + "(level).txt");
   for (int i = 2; i <= iters; ++i) {
     auto re = ee.adaptiveQuadrature(e, dim, i, 5);
     of << re << ',';

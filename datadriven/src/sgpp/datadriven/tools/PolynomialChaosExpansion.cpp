@@ -167,7 +167,7 @@ double PolynomialChaosExpansion::monteCarloQuad(
     dists[i] = std::uniform_real_distribution<double>{ranges[i].first, ranges[i].second};
   }
   auto gen = [&funct, &dists, &mersenne]() {
-    std::vector<double> randvec(dists.size());
+    base::DataVector randvec(dists.size());
     for (std::vector<std::uniform_real_distribution<double>>::size_type j = 0; j < dists.size();
          ++j) {
       randvec[j] = dists[j](mersenne);
@@ -179,8 +179,8 @@ double PolynomialChaosExpansion::monteCarloQuad(
   return factor * results.sum();
 }
 
-void PolynomialChaosExpansion::printGridHelper(std::function<double(const base::DataVector&)> funct,
-                                               int dim, int level, std::string tFilename) {
+void PolynomialChaosExpansion::printGrid(std::function<double(const base::DataVector&)> funct,
+                                         int dim, int level, std::string tFilename) {
   auto numfunc = [&funct](const base::DataVector& input,
                           std::vector<std::pair<double, double>>& ranges) {
     base::DataVector temp(input.size());
@@ -189,7 +189,7 @@ void PolynomialChaosExpansion::printGridHelper(std::function<double(const base::
     }
     return funct(temp);
   };
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearBoundaryGrid(dim));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   grid->getGenerator().regular(level);
   std::ofstream fileout;
@@ -205,7 +205,8 @@ void PolynomialChaosExpansion::printGridHelper(std::function<double(const base::
     fileout << '\n';
   }
 }
-void PolynomialChaosExpansion::printAdaptiveGridHelper(
+// clean this up
+void PolynomialChaosExpansion::printAdaptiveGrid(
     std::function<double(const base::DataVector&)> funct, int dim, int level, int steps,
     std::string tFilename) {
   auto numfunc = [&funct](const base::DataVector& input,
@@ -226,7 +227,7 @@ void PolynomialChaosExpansion::printAdaptiveGridHelper(
    * Create coefficient vector with size corresponding to the grid size.
    * Initially, all the values are set to zero.
    */
-  base::DataVector alpha(gridStorage.getSize());
+  base::DataVector coeffs(gridStorage.getSize());
 
   /**
    * Create a vector for storing (possibly expensive) function evaluations at
@@ -258,15 +259,15 @@ void PolynomialChaosExpansion::printAdaptiveGridHelper(
      * added to the grid. Also all missing parents are added (recursively).
      * All new points are appended to the addedPoints vector.
      */
-    base::SurplusRefinementFunctor functor(alpha, 1);
+    base::SurplusRefinementFunctor functor(coeffs, 1);
     grid->getGenerator().refine(functor, &addedPoints);
 
     /**
-     * Extend alpha and funEval vector (new entries uninitialized). Note that right now, the size
+     * Extend coeffs and funEval vector (new entries uninitialized). Note that right now, the size
      * of both vectors
      * matches number of gridpoints again, but the values of the new points are set to zero.
      */
-    alpha.resize(gridStorage.getSize());
+    coeffs.resize(gridStorage.getSize());
     funEvals.resize(gridStorage.getSize());
 
     /**
@@ -284,9 +285,9 @@ void PolynomialChaosExpansion::printAdaptiveGridHelper(
     }
 
     /**
-     * Reset the alpha vector to function evals to prepare for hierarchisation.
+     * Reset the coeffs vector to function evals to prepare for hierarchisation.
      */
-    alpha.copyFrom(funEvals);
+    coeffs.copyFrom(funEvals);
 
     // try hierarchisation
     bool succHierarch = false;
@@ -295,9 +296,8 @@ void PolynomialChaosExpansion::printAdaptiveGridHelper(
       std::unique_ptr<base::OperationHierarchisation>(
           sgpp::op_factory::createOperationHierarchisation(*grid))
 
-          ->doHierarchisation(alpha);
+          ->doHierarchisation(coeffs);
       succHierarch = true;
-
     } catch (...) {
       succHierarch = false;
     }
@@ -308,18 +308,12 @@ void PolynomialChaosExpansion::printAdaptiveGridHelper(
       sgpp::base::sle_solver::Eigen sleSolver;
 
       // solve linear system
-      if (!sleSolver.solve(hierSLE, funEvals, alpha)) {
+      if (!sleSolver.solve(hierSLE, funEvals, coeffs)) {
         std::cout << "Solving failed, exiting.\n";
         return;
       }
     }
-    /**
-     * Clear the addedPoints vector for the next iteration.
-     */
     addedPoints.clear();
-
-    // std::cout << "refinement step " << step + 1 << ", new grid size: " << alpha.getSize() <<
-    // std::endl;
   }
   std::ofstream fileout;
   fileout.open(tFilename.c_str());
@@ -347,7 +341,6 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
   };
   std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
-  // std::cout << "dimensionality:        " << gridStorage.getDimension() << std::endl;
 
   grid->getGenerator().regular(level);
   std::cout << "number of grid points: " << gridStorage.getSize() << std::endl;
@@ -377,7 +370,6 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
 
         ->doHierarchisation(evals);
     succHierarch = true;
-
   } catch (...) {
     succHierarch = false;
   }
@@ -393,17 +385,16 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
       std::cout << "Solving failed, exiting.\n";
       return 1;
     }
+    // overwrite evals
+    evals = coeffs;
   }
 
   // direct quadrature
   std::unique_ptr<sgpp::base::OperationQuadrature> opQ(
       sgpp::op_factory::createOperationQuadrature(*grid));
   double res;
-  if (succHierarch) {
-    res = opQ->doQuadrature(evals);
-  } else {
-    res = opQ->doQuadrature(coeffs);
-  }
+  res = opQ->doQuadrature(evals);
+
   double prod = 1;
   for (auto pair : ranges) {
     prod *= (pair.second - pair.first);
@@ -431,7 +422,7 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
    * Create coefficient vector with size corresponding to the grid size.
    * Initially, all the values are set to zero.
    */
-  base::DataVector alpha(gridStorage.getSize());
+  base::DataVector coeffs(gridStorage.getSize());
 
   /**
    * Create a vector for storing (possibly expensive) function evaluations at
@@ -463,15 +454,15 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
      * added to the grid. Also all missing parents are added (recursively).
      * All new points are appended to the addedPoints vector.
      */
-    base::SurplusRefinementFunctor functor(alpha, 1);
+    base::SurplusRefinementFunctor functor(coeffs, 1);
     grid->getGenerator().refine(functor, &addedPoints);
 
     /**
-     * Extend alpha and funEval vector (new entries uninitialized). Note that right now, the size
+     * Extend coeffs and funEval vector (new entries uninitialized). Note that right now, the size
      * of both vectors
      * matches number of gridpoints again, but the values of the new points are set to zero.
      */
-    alpha.resize(gridStorage.getSize());
+    coeffs.resize(gridStorage.getSize());
     funEvals.resize(gridStorage.getSize());
 
     /**
@@ -489,9 +480,9 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
     }
 
     /**
-     * Reset the alpha vector to function evals to prepare for hierarchisation.
+     * Reset the coeffs vector to function evals to prepare for hierarchisation.
      */
-    alpha.copyFrom(funEvals);
+    coeffs.copyFrom(funEvals);
 
     // try hierarchisation
     bool succHierarch = false;
@@ -500,9 +491,8 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
       std::unique_ptr<base::OperationHierarchisation>(
           sgpp::op_factory::createOperationHierarchisation(*grid))
 
-          ->doHierarchisation(alpha);
+          ->doHierarchisation(coeffs);
       succHierarch = true;
-
     } catch (...) {
       succHierarch = false;
     }
@@ -513,7 +503,7 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
       sgpp::base::sle_solver::Eigen sleSolver;
 
       // solve linear system
-      if (!sleSolver.solve(hierSLE, funEvals, alpha)) {
+      if (!sleSolver.solve(hierSLE, funEvals, coeffs)) {
         std::cout << "Solving failed, exiting.\n";
         return 1;
       }
@@ -522,13 +512,7 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
      * Clear the addedPoints vector for the next iteration.
      */
     addedPoints.clear();
-
-    // std::cout << "refinement step " << step + 1 << ", new grid size: " << alpha.getSize() <<
-    // std::endl;
   }
-  // for (size_t i = 0; i < alpha.getSize(); i++) {
-  //  std::cout << alpha[i] << std::endl;
-  //}
 
   double prod = 1;
   for (auto pair : ranges) {
@@ -537,15 +521,228 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
   // direct quadrature
   std::unique_ptr<sgpp::base::OperationQuadrature> opQ(
       sgpp::op_factory::createOperationQuadrature(*grid));
-  double res = opQ->doQuadrature(alpha);
+  double res = opQ->doQuadrature(coeffs);
   return res * prod;
 }
 
+double PolynomialChaosExpansion::sparseGridQuadratureL2(
+    std::function<double(const base::DataVector&)> funct, int dim, int level) {
+  auto numfunc = [&funct](const base::DataVector& input,
+                          std::vector<std::pair<double, double>>& ranges) {
+    base::DataVector temp(input.size());
+    for (int i = 0; i < input.size(); ++i) {
+      temp[i] = input[i] * (ranges[i].second - ranges[i].first) + ranges[i].first;
+    }
+    return funct(temp);
+  };
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearGrid(dim));
+  sgpp::base::GridStorage& gridStorage = grid->getStorage();
+
+  grid->getGenerator().regular(level);
+  std::cout << "number of grid points: " << gridStorage.getSize() << std::endl;
+
+  /**
+   * Calculate the surplus vector alpha for the interpolant of \f$
+   * f(x)\f$.  Since the function can be evaluated at any
+   * point. Hence. we simply evaluate it at the coordinates of the
+   * grid points to obtain the nodal values. Then we use
+   * hierarchization to obtain the surplus value.
+   *
+   */
+  sgpp::base::DataVector evals(gridStorage.getSize());
+  base::DataVector p(dim);
+  for (size_t i = 0; i < gridStorage.getSize(); i++) {
+    sgpp::base::GridPoint& gp = gridStorage.getPoint(i);
+    for (int j = 0; j < dim; ++j) {
+      p[j] = gp.getStandardCoordinate(j);
+    }
+    evals[i] = numfunc(p, ranges);
+  }
+  bool succHierarch = false;
+
+  try {
+    std::unique_ptr<base::OperationHierarchisation>(
+        sgpp::op_factory::createOperationHierarchisation(*grid))
+
+        ->doHierarchisation(evals);
+    succHierarch = true;
+  } catch (...) {
+    succHierarch = false;
+  }
+
+  base::DataVector coeffs(evals.getSize());
+  if (!succHierarch) {
+    std::cout << "Hierarchizing...\n\n";
+    sgpp::base::HierarchisationSLE hierSLE(*grid);
+    sgpp::base::sle_solver::Eigen sleSolver;
+
+    // solve linear system
+    if (!sleSolver.solve(hierSLE, evals, coeffs)) {
+      std::cout << "Solving failed, exiting.\n";
+      return 1;
+    }
+    evals = coeffs;
+  }
+  // sample grid at MC points, compare opEval to transformed function(numfunc)
+  std::vector<std::uniform_real_distribution<double>> dists(dim);
+  std::random_device dev;
+  std::mt19937_64 mersenne{dev()};
+  for (int i = 0; i < dim; ++i) {
+    dists[i] = std::uniform_real_distribution<double>{0.0, 1.0};
+  }
+
+  auto gen = [&numfunc, &dists, &mersenne, &grid, &evals, this]() {
+    base::DataVector randvec(dists.size());
+    for (std::vector<std::uniform_real_distribution<double>>::size_type j = 0; j < dists.size();
+         ++j) {
+      randvec[j] = dists[j](mersenne);
+    }
+    std::unique_ptr<sgpp::base::OperationEval> opEval(sgpp::op_factory::createOperationEval(*grid));
+    return numfunc(base::DataVector(randvec), ranges) - (opEval->eval(evals, randvec));
+  };
+  size_t n = 100000;
+  base::DataVector results(n);
+  std::generate(results.begin(), results.end(), gen);
+
+  return results.l2Norm() / n;
+}
+double PolynomialChaosExpansion::adaptiveQuadratureL2(
+    std::function<double(const base::DataVector&)> funct, int dim, int level, int steps) {
+  auto numfunc = [&funct](const base::DataVector& input,
+                          std::vector<std::pair<double, double>>& ranges) {
+    base::DataVector temp(input.size());
+    for (int i = 0; i < input.size(); ++i) {
+      temp[i] = (input[i]) * (ranges[i].second - ranges[i].first) + ranges[i].first;
+    }
+    return funct(temp);
+  };
+
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearGrid(dim));
+  sgpp::base::GridStorage& gridStorage = grid->getStorage();
+
+  grid->getGenerator().regular(level);
+
+  /**
+   * Create coefficient vector with size corresponding to the grid size.
+   * Initially, all the values are set to zero.
+   */
+  base::DataVector coeffs(gridStorage.getSize());
+
+  /**
+   * Create a vector for storing (possibly expensive) function evaluations at
+   * each gridpoint.
+   */
+  base::DataVector funEvals(gridStorage.getSize());
+  for (size_t i = 0; i < gridStorage.getSize(); i++) {
+    base::GridPoint& gp = gridStorage.getPoint(i);
+    base::DataVector vec(dim);
+    for (int j = 0; j < dim; ++j) {
+      vec[j] = gp.getStandardCoordinate(j);
+    }
+    funEvals[i] = numfunc(vec, ranges);
+  }
+
+  /**
+   * create a vector for storing newly added points by their sequence id.
+   */
+  std::vector<size_t> addedPoints;
+
+  /**
+   * Refine adaptively #steps times.
+   */
+  for (int step = 0; step < steps; step++) {
+    /**
+     * Refine a single grid point each time.
+     * The SurplusRefinementFunctor chooses the grid point with the highest absolute surplus.
+     * Refining the point means, that all children of this point (if not already present) are
+     * added to the grid. Also all missing parents are added (recursively).
+     * All new points are appended to the addedPoints vector.
+     */
+    base::SurplusRefinementFunctor functor(coeffs, 1);
+    grid->getGenerator().refine(functor, &addedPoints);
+
+    /**
+     * Extend coeffs and funEval vector (new entries uninitialized). Note that right now, the size
+     * of both vectors
+     * matches number of gridpoints again, but the values of the new points are set to zero.
+     */
+    coeffs.resize(gridStorage.getSize());
+    funEvals.resize(gridStorage.getSize());
+
+    /**
+     * Evaluate the function f at the newly created gridpoints and set the
+     * corresponding entries in the funEval vector with these values.
+     */
+    for (size_t i = 0; i < addedPoints.size(); i++) {
+      size_t seq = addedPoints[i];
+      base::GridPoint& gp = gridStorage.getPoint(seq);
+      base::DataVector vec(dim);
+      for (int j = 0; j < dim; ++j) {
+        vec[j] = gp.getStandardCoordinate(j);
+      }
+      funEvals[seq] = numfunc(vec, ranges);
+    }
+
+    /**
+     * Reset the coeffs vector to function evals to prepare for hierarchisation.
+     */
+    coeffs.copyFrom(funEvals);
+
+    // try hierarchisation
+    bool succHierarch = false;
+
+    try {
+      std::unique_ptr<base::OperationHierarchisation>(
+          sgpp::op_factory::createOperationHierarchisation(*grid))
+
+          ->doHierarchisation(coeffs);
+      succHierarch = true;
+    } catch (...) {
+      succHierarch = false;
+    }
+
+    if (!succHierarch) {
+      std::cout << "Hierarchizing...\n\n";
+      sgpp::base::HierarchisationSLE hierSLE(*grid);
+      sgpp::base::sle_solver::Eigen sleSolver;
+
+      // solve linear system
+      if (!sleSolver.solve(hierSLE, funEvals, coeffs)) {
+        std::cout << "Solving failed, exiting.\n";
+        return 1;
+      }
+    }
+    addedPoints.clear();
+  }
+  // sample grid at MC points, compare opEval to transformed function(numfunc)
+  std::vector<std::uniform_real_distribution<double>> dists(dim);
+  std::random_device dev;
+  std::mt19937_64 mersenne{dev()};
+  for (int i = 0; i < dim; ++i) {
+    dists[i] = std::uniform_real_distribution<double>{0.0, 1.0};
+  }
+
+  auto gen = [&numfunc, &dists, &mersenne, &grid, &coeffs, this]() {
+    base::DataVector randvec(dists.size());
+    for (std::vector<std::uniform_real_distribution<double>>::size_type j = 0; j < dists.size();
+         ++j) {
+      randvec[j] = dists[j](mersenne);
+    }
+    std::unique_ptr<sgpp::base::OperationEval> opEval(sgpp::op_factory::createOperationEval(*grid));
+    return numfunc(base::DataVector(randvec), ranges) - (opEval->eval(coeffs, randvec));
+  };
+  size_t n = 100000;
+  base::DataVector results(n);
+  std::generate(results.begin(), results.end(), gen);
+
+  return results.l2Norm() / n;
+}
+
 std::vector<std::vector<int>> PolynomialChaosExpansion::multiIndex(int dimension, int order) {
-  std::vector<std::vector<int>> index;
+  std::vector<std::vector<int>> index(std::pow(order + 1, dimension));
   std::vector<int> curr(dimension);
-  while (true) {
-    index.push_back(curr);
+  for (size_t j = 0; j < index.size(); ++j) {
+    index[j] = curr;
     curr[0]++;
     for (int i = 0; i < dimension; ++i) {
       if (curr[dimension - 1] > order) {
@@ -572,11 +769,11 @@ base::DataVector PolynomialChaosExpansion::calculateCoefficients() {
   auto index = PolynomialChaosExpansion::multiIndex(static_cast<int>(types.size()), order);
   base::DataVector result(index.size());
   // calculate aj for each entry in the multiindex
-  for (std::vector<std::vector<double>>::size_type j = 0; j < index.size(); ++j) {
+  for (std::vector<std::vector<int>>::size_type j = 0; j < index.size(); ++j) {
     // lambdas for composite function to be integrated
     auto numfunc = [this, &index, j](const base::DataVector& vec) {
       double prd = 1;
-      for (std::vector<double>::size_type i = 0; i < vec.getSize(); ++i) {
+      for (base::DataVector::size_type i = 0; i < vec.getSize(); ++i) {
         prd *= evals[static_cast<int>(types[i])](index[j][i], vec[i]) *
                weights[static_cast<int>(types[i])](vec[i]);
       }
@@ -615,7 +812,7 @@ double PolynomialChaosExpansion::evalExpansion(const base::DataVector& xi) {
   double sum = 0.0;
   for (std::vector<std::vector<int>>::size_type j = 0; j < index.size(); ++j) {
     double prod = 1.0;
-    for (std::vector<double>::size_type i = 0; i < index[j].size(); ++i) {
+    for (std::vector<int>::size_type i = 0; i < index[j].size(); ++i) {
       prod *= evals[static_cast<int>(types[i])](index[j][i], xi[i]);
     }
     sum += prod * coefficients[j];
