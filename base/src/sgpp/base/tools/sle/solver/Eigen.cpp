@@ -79,8 +79,8 @@ bool Eigen::solve(SLE& system, DataMatrix& B, DataMatrix& X) const {
 // ToDo (rehmemk): On my Ubuntu 19.10 instance the following did not work anymore
 // and I replaced it by a simple default(shared). Does this introduce problems?
 // (same in Armadillo.cpp)
-#pragma omp parallel if (system.isCloneable()) shared(system, A, nnz, rowsDone, n)  // default(none)
-  // #pragma omp parallel if (system.isCloneable()) default(shared)
+//#pragma omp parallel if (system.isCloneable()) shared(system, A, nnz, rowsDone, n)  // default(none)
+   #pragma omp parallel if (system.isCloneable()) default(shared)
   {
     SLE* system2 = &system;
 #ifdef _OPENMP

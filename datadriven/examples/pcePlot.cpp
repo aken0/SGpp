@@ -33,7 +33,7 @@ int main() {
   of.open("plot/" + path + ".txt", std::ios::out | std::ios::trunc);
   of << std::fixed;
   of << std::setprecision(9);
-  int iters = 12;
+  int iters = 8;
   int dim = 2;
   ee.printGrid(dim, 5, "plot/" + path + "(base-level5).txt");
   for (int i = 2; i <= iters; ++i) {
