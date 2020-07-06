@@ -768,7 +768,7 @@ base::DataVector PolynomialChaosExpansion::calculateCoefficients() {
 
     // double num = sparseGridQuadrature(intfunc, static_cast<int>(types.size()), 15);
 
-    double num = adaptiveQuadrature(intfunc, static_cast<int>(types.size()), 8, 10);
+    double num = adaptiveQuadrature(intfunc, static_cast<int>(types.size()), 5, 10);
 
     // calculate denominator
     double denom = 1.0;
