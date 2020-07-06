@@ -38,6 +38,7 @@ int main() {
     for (auto entry : re) {
       of << entry << ',';
     }
+    of << '\n';
   }
   of.close();
 }
