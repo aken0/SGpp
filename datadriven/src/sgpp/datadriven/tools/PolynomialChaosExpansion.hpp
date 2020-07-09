@@ -47,18 +47,18 @@ class PolynomialChaosExpansion {
   double sparseGridQuadrature(std::function<double(const base::DataVector&)> funct, int dim,
                               int level);
   double adaptiveQuadrature(std::function<double(const base::DataVector&)> funct, int dim,
-                            int level, int steps);
+                            size_t n);
   double sparseGridQuadratureL2(std::function<double(const base::DataVector&)> funct, int dim,
                                 int level);
   double adaptiveQuadratureL2(std::function<double(const base::DataVector&)> funct, int dim,
-                              int level, int steps);
+                              size_t n);
   base::DataVector calculateCoefficients();
   base::DataVector getCoefficients();
   double evalExpansion(const base::DataVector& xi);
   double getL2Error();
   void printGrid(int dim, int level, std::string tFilename);
-  void printAdaptiveGrid(std::function<double(const base::DataVector&)> funct, int dim, int level,
-                         int steps, std::string tFilename);
+  void printAdaptiveGrid(std::function<double(const base::DataVector&)> funct, int dim, size_t n,
+                         std::string tFilename);
 };
 }  // namespace datadriven
 }  // namespace sgpp

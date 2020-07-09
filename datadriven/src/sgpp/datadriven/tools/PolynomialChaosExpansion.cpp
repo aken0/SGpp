@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstddef>
 #include <functional>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <numeric>
@@ -197,7 +198,7 @@ void PolynomialChaosExpansion::printGrid(int dim, int level, std::string tFilena
 }
 
 void PolynomialChaosExpansion::printAdaptiveGrid(
-    std::function<double(const base::DataVector&)> funct, int dim, int level, int steps,
+    std::function<double(const base::DataVector&)> funct, int dim, size_t n,
     std::string tFilename) {
   auto numfunc = [&funct](const base::DataVector& input,
                           std::vector<std::pair<double, double>>& ranges) {
@@ -210,7 +211,7 @@ void PolynomialChaosExpansion::printAdaptiveGrid(
 
   std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
-  grid->getGenerator().regular(level);
+  grid->getGenerator().regular(1);
 
   /**
    * Create coefficient vector with size corresponding to the grid size.
@@ -239,7 +240,7 @@ void PolynomialChaosExpansion::printAdaptiveGrid(
   /**
    * Refine adaptively #steps times.
    */
-  for (int step = 0; step < steps; step++) {
+  while (gridStorage.getSize() < n) {
     /**
      * Refine a single grid point each time.
      * The SurplusRefinementFunctor chooses the grid point with the highest absolute surplus.
@@ -330,7 +331,6 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
   std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   grid->getGenerator().regular(level);
-  // std::cout << "number of grid points: " << gridStorage.getSize() << std::endl;
 
   /**
    * Calculate the surplus vector alpha for the interpolant of \f$
@@ -378,8 +378,7 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
   // direct quadrature
   std::unique_ptr<sgpp::base::OperationQuadrature> opQ(
       sgpp::op_factory::createOperationQuadrature(*grid));
-  double res;
-  res = opQ->doQuadrature(evals);
+  long double res = opQ->doQuadrature(evals);
 
   double prod = 1;
   for (auto pair : ranges) {
@@ -390,7 +389,7 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
 
 // work in progress
 double PolynomialChaosExpansion::adaptiveQuadrature(
-    std::function<double(const base::DataVector&)> funct, int dim, int level, int steps) {
+    std::function<double(const base::DataVector&)> funct, int dim, size_t n) {
   auto numfunc = [&funct](const base::DataVector& input,
                           std::vector<std::pair<double, double>>& ranges) {
     base::DataVector temp(input.size());
@@ -402,7 +401,8 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
 
   std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
-  grid->getGenerator().regular(level);
+  // generate starting grid
+  grid->getGenerator().regular(1);
 
   /**
    * Create coefficient vector with size corresponding to the grid size.
@@ -430,9 +430,11 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
   std::vector<size_t> addedPoints;
 
   /**
-   * Refine adaptively #steps times.
+   * Refine adaptively until number of points is reached.
    */
-  for (int step = 0; step < steps; step++) {
+  // for (int step = 0; step < steps; step++) {
+  while (gridStorage.getSize() < n) {
+    // std::cout << gridStorage.getSize() << '\n';
     /**
      * Refine a single grid point each time.
      * The SurplusRefinementFunctor chooses the grid point with the highest absolute surplus.
@@ -503,7 +505,7 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
   // direct quadrature
   std::unique_ptr<sgpp::base::OperationQuadrature> opQ(
       sgpp::op_factory::createOperationQuadrature(*grid));
-  double res = opQ->doQuadrature(coeffs);
+  long double res = opQ->doQuadrature(coeffs);
   return res * prod;
 }
 
@@ -580,16 +582,15 @@ double PolynomialChaosExpansion::sparseGridQuadratureL2(
     }
     std::unique_ptr<sgpp::base::OperationEval> opEval(
         sgpp::op_factory::createOperationEvalNaive(*grid));
-    return numfunc(base::DataVector(randvec), ranges) - (opEval->eval(evals, randvec));
+    return std::pow(numfunc(base::DataVector(randvec), ranges) - (opEval->eval(evals, randvec)), 2);
   };
   size_t n = 100000;
   base::DataVector results(n);
   std::generate(results.begin(), results.end(), gen);
-
-  return results.l2Norm() / static_cast<double>(n);
+  return results.sum() / static_cast<double>(n);
 }
 double PolynomialChaosExpansion::adaptiveQuadratureL2(
-    std::function<double(const base::DataVector&)> funct, int dim, int level, int steps) {
+    std::function<double(const base::DataVector&)> funct, int dim, size_t n) {
   auto numfunc = [&funct](const base::DataVector& input,
                           std::vector<std::pair<double, double>>& ranges) {
     base::DataVector temp(input.size());
@@ -602,7 +603,7 @@ double PolynomialChaosExpansion::adaptiveQuadratureL2(
   std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
 
-  grid->getGenerator().regular(level);
+  grid->getGenerator().regular(1);
 
   /**
    * Create coefficient vector with size corresponding to the grid size.
@@ -632,7 +633,7 @@ double PolynomialChaosExpansion::adaptiveQuadratureL2(
   /**
    * Refine adaptively #steps times.
    */
-  for (int step = 0; step < steps; step++) {
+  while (gridStorage.getSize() < n) {
     /**
      * Refine a single grid point each time.
      * The SurplusRefinementFunctor chooses the grid point with the highest absolute surplus.
@@ -711,13 +712,13 @@ double PolynomialChaosExpansion::adaptiveQuadratureL2(
     }
     std::unique_ptr<sgpp::base::OperationEval> opEval(
         sgpp::op_factory::createOperationEvalNaive(*grid));
-    return numfunc(base::DataVector(randvec), ranges) - (opEval->eval(coeffs, randvec));
+    return std::pow(numfunc(base::DataVector(randvec), ranges) - (opEval->eval(coeffs, randvec)),
+                    2);
   };
-  size_t n = 100000;
+  size_t num = 100000;
   base::DataVector results(n);
   std::generate(results.begin(), results.end(), gen);
-
-  return results.l2Norm() / static_cast<double>(n);
+  return results.sum() / static_cast<double>(num);
 }
 
 std::vector<std::vector<int>> PolynomialChaosExpansion::multiIndex(int dimension, int order) {
@@ -768,7 +769,7 @@ base::DataVector PolynomialChaosExpansion::calculateCoefficients() {
 
     // double num = sparseGridQuadrature(intfunc, static_cast<int>(types.size()), 15);
 
-    double num = adaptiveQuadrature(intfunc, static_cast<int>(types.size()), 5, 10);
+    double num = adaptiveQuadrature(intfunc, static_cast<int>(types.size()), 10000);
 
     // calculate denominator
     double denom = 1.0;
