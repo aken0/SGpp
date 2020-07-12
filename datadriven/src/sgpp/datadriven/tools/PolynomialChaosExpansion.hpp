@@ -45,16 +45,16 @@ class PolynomialChaosExpansion {
   std::vector<std::vector<int>> multiIndex(int dimension, int order);
   double monteCarloQuad(std::function<double(const base::DataVector&)> funct, size_t n);
   double sparseGridQuadrature(std::function<double(const base::DataVector&)> funct, int dim,
-                              int level);
+                              int n /*,int level*/);
   double adaptiveQuadrature(std::function<double(const base::DataVector&)> funct, int dim,
                             size_t n);
   double sparseGridQuadratureL2(std::function<double(const base::DataVector&)> funct, int dim,
-                                int level);
+                                int n /*,int level*/);
   double adaptiveQuadratureL2(std::function<double(const base::DataVector&)> funct, int dim,
                               size_t n);
-  base::DataVector calculateCoefficients();
+  base::DataVector calculateCoefficients(int n, std::string method);
   base::DataVector getCoefficients();
-  double evalExpansion(const base::DataVector& xi);
+  double evalExpansion(const base::DataVector& xi, int n, std::string method);
   double getL2Error();
   void printGrid(int dim, int level, std::string tFilename);
   void printAdaptiveGrid(std::function<double(const base::DataVector&)> funct, int dim, size_t n,

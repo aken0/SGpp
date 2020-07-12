@@ -80,5 +80,59 @@ int main() {
   }
   of << '\n';
   std::cout << "g" << '\n';
+  for (int i = 10; i <= points; i *= 2) {
+    auto re = ee.sparseGridQuadrature(e, dim, i);
+    of << re << ',';
+  }
+  std::cout << "e2" << '\n';
+  of << '\n';
+  for (int i = 10; i <= points; i *= 2) {
+    auto re = ee.sparseGridQuadrature(f, dim, i);
+    of << re << ',';
+  }
+  std::cout << "f2" << '\n';
+  of << '\n';
+  for (int i = 10; i <= points; i *= 2) {
+    auto re = ee.sparseGridQuadrature(g, dim, i);
+    of << re << ',';
+  }
+  std::cout << "g2" << '\n';
+  of << '\n';
+  for (int i = 10; i <= points; i *= 2) {
+    auto re = ee.sparseGridQuadratureL2(e, dim, i);
+    of << re << ',';
+  }
+  of << '\n';
+  std::cout << "e2" << '\n';
+  for (int i = 10; i <= points; i *= 2) {
+    auto re = ee.sparseGridQuadratureL2(f, dim, i);
+    of << re << ',';
+  }
+  of << '\n';
+  std::cout << "f2" << '\n';
+  for (int i = 10; i <= points; i *= 2) {
+    auto re = ee.sparseGridQuadratureL2(g, dim, i);
+    of << re << ',';
+  }
+  of << '\n';
+  std::cout << "g2" << '\n';
+  for (int i = 10; i <= points; i *= 2) {
+    auto re = ee.monteCarloQuad(e, i);
+    of << re << ',';
+  }
+  of << '\n';
+  std::cout << "emc" << '\n';
+  for (int i = 10; i <= points; i *= 2) {
+    auto re = ee.monteCarloQuad(f, i);
+    of << re << ',';
+  }
+  of << '\n';
+  std::cout << "fmc" << '\n';
+  for (int i = 10; i <= points; i *= 2) {
+    auto re = ee.monteCarloQuad(g, i);
+    of << re << ',';
+  }
+  of << '\n';
+  std::cout << "gmc" << '\n';
   of.close();
 }

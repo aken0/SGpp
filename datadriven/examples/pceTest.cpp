@@ -34,10 +34,13 @@ int main() {
                                                        std::pair<double, double>{-1, 1},
                                                    },
                                                    0, 0);
+    std::cout << ee.sparseGridQuadrature(e, 2, 60000) << '\n';
+    /*
     auto re = ee.calculateCoefficients();
     for (auto entry : re) {
       of << entry << ',';
     }
+    */
     of << '\n';
   }
   of.close();
