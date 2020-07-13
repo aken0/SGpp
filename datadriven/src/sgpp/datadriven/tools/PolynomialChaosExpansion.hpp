@@ -54,8 +54,9 @@ class PolynomialChaosExpansion {
                               size_t n);
   base::DataVector calculateCoefficients(int n, std::string method);
   base::DataVector getCoefficients();
+  void clearCoefficients();
   double evalExpansion(const base::DataVector& xi, int n, std::string method);
-  double getL2Error();
+  double getL2Error(int n, std::string method);
   void printGrid(int dim, int level, std::string tFilename);
   void printAdaptiveGrid(std::function<double(const base::DataVector&)> funct, int dim, size_t n,
                          std::string tFilename);

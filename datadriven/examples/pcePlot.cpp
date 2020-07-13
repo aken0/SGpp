@@ -78,6 +78,7 @@ int main() {
     auto re = ee.adaptiveQuadratureL2(g, dim, i);
     of << re << ',';
   }
+  // sparseGridQuadrature
   of << '\n';
   std::cout << "g" << '\n';
   for (int i = 10; i <= points; i *= 2) {
@@ -114,25 +115,62 @@ int main() {
     auto re = ee.sparseGridQuadratureL2(g, dim, i);
     of << re << ',';
   }
+  // Monte-Carlo
   of << '\n';
   std::cout << "g2" << '\n';
   for (int i = 10; i <= points; i *= 2) {
-    auto re = ee.monteCarloQuad(e, i);
-    of << re << ',';
+    sgpp::base::DataVector result(10);
+    for (int i = 0; i < 10; ++i) {
+      result[i] = ee.monteCarloQuad(e, i);
+    }
+    auto re = result.sum();
+    of << re / result.size() << ',';
   }
   of << '\n';
   std::cout << "emc" << '\n';
   for (int i = 10; i <= points; i *= 2) {
-    auto re = ee.monteCarloQuad(f, i);
-    of << re << ',';
+    sgpp::base::DataVector result(10);
+    for (int i = 0; i < 10; ++i) {
+      result[i] = ee.monteCarloQuad(f, i);
+    }
+    auto re = result.sum();
+    of << re / result.size() << ',';
   }
   of << '\n';
   std::cout << "fmc" << '\n';
   for (int i = 10; i <= points; i *= 2) {
-    auto re = ee.monteCarloQuad(g, i);
-    of << re << ',';
+    sgpp::base::DataVector result(10);
+    for (int i = 0; i < 10; ++i) {
+      result[i] = ee.monteCarloQuad(g, i);
+    }
+    auto re = result.sum();
+    of << re / result.size() << ',';
   }
   of << '\n';
   std::cout << "gmc" << '\n';
+
+  for (auto method : {"sparseGrid", "adaptiveGrid"}) {
+    for (auto function : {e, f, g}) {
+      for (auto order : {1, 3, 10}) {
+        for (int i = 10; i <= points; i *= 2) {
+          auto ee = sgpp::datadriven::PolynomialChaosExpansion(
+              function, order,
+              std::vector<sgpp::datadriven::distributionType>{
+                  sgpp::datadriven::distributionType::Uniform,
+                  sgpp::datadriven::distributionType::Uniform},
+              std::vector<std::pair<double, double>>{
+                  std::pair<double, double>{-1, 1},
+                  std::pair<double, double>{-1, 1},
+              },
+              0, 0);
+          ee.calculateCoefficients(i, method);
+          auto re = ee.getL2Error(i, method);
+          of << re << ',';
+        }
+        of << '\n';
+      }
+    }
+  }
+  of << '\n';
   of.close();
 }

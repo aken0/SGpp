@@ -545,7 +545,6 @@ double PolynomialChaosExpansion::sparseGridQuadratureL2(
   for (int i = 0; i < dim; ++i) {
     dists[i] = std::uniform_real_distribution<double>{0.0, 1.0};
   }
-
   auto gen = [&numfunc, &dists, &mersenne, &grid, &evals, this]() {
     base::DataVector randvec(dists.size());
     for (std::vector<std::uniform_real_distribution<double>>::size_type i = 0; i < dists.size();
@@ -737,6 +736,7 @@ base::DataVector PolynomialChaosExpansion::calculateCoefficients(int n, std::str
 }
 base::DataVector PolynomialChaosExpansion::getCoefficients() { return coefficients; }
 
+void PolynomialChaosExpansion::clearCoefficients() { this->coefficients.clear(); }
 double PolynomialChaosExpansion::evalExpansion(const base::DataVector& xi, int n,
                                                std::string method) {
   if (coefficients.empty()) {
@@ -754,6 +754,26 @@ double PolynomialChaosExpansion::evalExpansion(const base::DataVector& xi, int n
   return sum;
 }
 // sample target and compare to pce eval
-double PolynomialChaosExpansion::getL2Error() { return 0.0; }
+double PolynomialChaosExpansion::getL2Error(int n, std::string method) {
+  int dim = static_cast<int>(types.size());
+  std::vector<std::uniform_real_distribution<double>> dists(dim);
+  std::random_device dev;
+  std::mt19937_64 mersenne{dev()};
+  for (int i = 0; i < dim; ++i) {
+    dists[i] = std::uniform_real_distribution<double>{ranges[i].first, ranges[i].second};
+  }
+  auto gen = [this, &dists, &mersenne, &n, &method]() {
+    base::DataVector randvec(dists.size());
+    for (std::vector<std::uniform_real_distribution<double>>::size_type i = 0; i < dists.size();
+         ++i) {
+      randvec[i] = dists[i](mersenne);
+    }
+    return std::pow(func(randvec) - (evalExpansion(randvec, n, method)), 2);
+  };
+  size_t num = 100000;
+  base::DataVector results(num);
+  std::generate(results.begin(), results.end(), gen);
+  return results.sum() / static_cast<double>(num);
+}
 }  // namespace datadriven
 }  // namespace sgpp
