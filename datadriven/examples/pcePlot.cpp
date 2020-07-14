@@ -33,7 +33,7 @@ int main() {
   of.open("plot_pce/" + path + ".txt", std::ios::out | std::ios::trunc);
   of << std::fixed;
   of << std::setprecision(std::numeric_limits<double>::digits10 + 1);
-  int points = 100000;
+  int points = 10000;
   int dim = 2;
   ee.printGrid(dim, 1, "plot_pce/" + path + "(base-level5).txt");
   std::cout << "base" << '\n';
@@ -123,8 +123,8 @@ int main() {
     for (int i = 0; i < 10; ++i) {
       result[i] = ee.monteCarloQuad(e, i);
     }
-    auto re = result.sum();
-    of << re / result.size() << ',';
+    double re = result.sum() / static_cast<double>(result.size());
+    of << re << ',';
   }
   of << '\n';
   std::cout << "emc" << '\n';
@@ -133,8 +133,8 @@ int main() {
     for (int i = 0; i < 10; ++i) {
       result[i] = ee.monteCarloQuad(f, i);
     }
-    auto re = result.sum();
-    of << re / result.size() << ',';
+    double re = result.sum() / static_cast<double>(result.size());
+    of << re << ',';
   }
   of << '\n';
   std::cout << "fmc" << '\n';
@@ -143,8 +143,8 @@ int main() {
     for (int i = 0; i < 10; ++i) {
       result[i] = ee.monteCarloQuad(g, i);
     }
-    auto re = result.sum();
-    of << re / result.size() << ',';
+    double re = result.sum() / static_cast<double>(result.size());
+    of << re << ',';
   }
   of << '\n';
   std::cout << "gmc" << '\n';

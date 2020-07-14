@@ -180,7 +180,7 @@ double PolynomialChaosExpansion::monteCarloQuad(
 }
 
 void PolynomialChaosExpansion::printGrid(int dim, int level, std::string tFilename) {
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearBoundaryGrid(dim));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   grid->getGenerator().regular(level);
   std::ofstream fileout;
@@ -209,7 +209,7 @@ void PolynomialChaosExpansion::printAdaptiveGrid(
     return funct(temp);
   };
 
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearBoundaryGrid(dim));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   // generate starting grid
   grid->getGenerator().regular(1);
@@ -314,7 +314,7 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
     }
     return funct(temp);
   };
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearBoundaryGrid(dim));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   int i = 0;
   while (gridStorage.getSize() < n) {
@@ -388,7 +388,7 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
     return funct(temp);
   };
 
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearBoundaryGrid(dim));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   // generate starting grid
   grid->getGenerator().regular(1);
@@ -486,7 +486,7 @@ double PolynomialChaosExpansion::sparseGridQuadratureL2(
     }
     return funct(temp);
   };
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearBoundaryGrid(dim));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
 
   int i = 0;
@@ -571,7 +571,7 @@ double PolynomialChaosExpansion::adaptiveQuadratureL2(
     return funct(temp);
   };
 
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearBoundaryGrid(dim));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   // generate starting grid
   grid->getGenerator().regular(1);
