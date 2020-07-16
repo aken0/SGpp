@@ -43,14 +43,15 @@ class PolynomialChaosExpansion {
   ~PolynomialChaosExpansion();
 
   std::vector<std::vector<int>> multiIndex(int dimension, int order);
-  double monteCarloQuad(std::function<double(const base::DataVector&)> funct, size_t n);
-  double sparseGridQuadrature(std::function<double(const base::DataVector&)> funct, int dim,
+  double monteCarloQuad(const std::function<double(const base::DataVector&)>& funct,
+                        const size_t& n);
+  double sparseGridQuadrature(const std::function<double(const base::DataVector&)>& funct, int dim,
                               int n /*,int level*/);
-  double adaptiveQuadrature(std::function<double(const base::DataVector&)> funct, int dim,
+  double adaptiveQuadrature(const std::function<double(const base::DataVector&)>& funct, int dim,
                             size_t n);
-  double sparseGridQuadratureL2(std::function<double(const base::DataVector&)> funct, int dim,
-                                int n /*,int level*/);
-  double adaptiveQuadratureL2(std::function<double(const base::DataVector&)> funct, int dim,
+  double sparseGridQuadratureL2(const std::function<double(const base::DataVector&)>& funct,
+                                int dim, int n /*,int level*/);
+  double adaptiveQuadratureL2(const std::function<double(const base::DataVector&)>& funct, int dim,
                               size_t n);
   base::DataVector calculateCoefficients(int n, std::string method);
   base::DataVector getCoefficients();

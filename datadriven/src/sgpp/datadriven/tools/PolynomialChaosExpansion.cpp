@@ -154,7 +154,7 @@ double PolynomialChaosExpansion::evalGenLaguerre(int n, double x) {
 }
 
 double PolynomialChaosExpansion::monteCarloQuad(
-    std::function<double(const base::DataVector&)> funct, size_t n) {
+    const std::function<double(const base::DataVector&)>& funct, const size_t& n) {
   std::vector<std::uniform_real_distribution<double>> dists(ranges.size());
   double prod = 1;
   for (auto pair : ranges) {
@@ -166,6 +166,7 @@ double PolynomialChaosExpansion::monteCarloQuad(
   for (std::vector<std::pair<double, double>>::size_type i = 0; i < ranges.size(); ++i) {
     dists[i] = std::uniform_real_distribution<double>{ranges[i].first, ranges[i].second};
   }
+  // lambda
   auto gen = [&funct, &dists, &mersenne]() {
     base::DataVector randvec(dists.size());
     for (std::vector<std::uniform_real_distribution<double>>::size_type i = 0; i < dists.size();
@@ -305,9 +306,9 @@ void PolynomialChaosExpansion::printAdaptiveGrid(
 }
 
 double PolynomialChaosExpansion::sparseGridQuadrature(
-    std::function<double(const base::DataVector&)> funct, int dim, int n /*,int level*/) {
+    const std::function<double(const base::DataVector&)>& funct, int dim, int n /*,int level*/) {
   auto numfunc = [&funct](const base::DataVector& input,
-                          std::vector<std::pair<double, double>>& ranges) {
+                          const std::vector<std::pair<double, double>>& ranges) {
     base::DataVector temp(input.size());
     for (base::DataVector::size_type i = 0; i < input.size(); ++i) {
       temp[i] = input[i] * (ranges[i].second - ranges[i].first) + ranges[i].first;
@@ -328,7 +329,6 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
    * point. Hence. we simply evaluate it at the coordinates of the
    * grid points to obtain the nodal values. Then we use
    * hierarchization to obtain the surplus value.
-   *
    */
   sgpp::base::DataVector evals(gridStorage.getSize());
   base::DataVector p(dim);
@@ -365,7 +365,6 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
     evals = coeffs;
   }
 
-  // direct quadrature
   std::unique_ptr<sgpp::base::OperationQuadrature> opQ(
       sgpp::op_factory::createOperationQuadrature(*grid));
   double res = opQ->doQuadrature(evals);
@@ -378,9 +377,9 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
 }
 
 double PolynomialChaosExpansion::adaptiveQuadrature(
-    std::function<double(const base::DataVector&)> funct, int dim, size_t n) {
+    const std::function<double(const base::DataVector&)>& funct, int dim, size_t n) {
   auto numfunc = [&funct](const base::DataVector& input,
-                          std::vector<std::pair<double, double>>& ranges) {
+                          const std::vector<std::pair<double, double>>& ranges) {
     base::DataVector temp(input.size());
     for (base::DataVector::size_type i = 0; i < input.size(); ++i) {
       temp[i] = (input[i]) * (ranges[i].second - ranges[i].first) + ranges[i].first;
@@ -468,18 +467,16 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
   for (auto pair : ranges) {
     prod *= (pair.second - pair.first);
   }
-  // direct quadrature
   std::unique_ptr<sgpp::base::OperationQuadrature> opQ(
       sgpp::op_factory::createOperationQuadrature(*grid));
   double res = opQ->doQuadrature(coeffs);
-  std::cout << "res: " << res << " prod: " << prod << "points: " << n << '\n';
   return res * prod;
 }
 
 double PolynomialChaosExpansion::sparseGridQuadratureL2(
-    std::function<double(const base::DataVector&)> funct, int dim, int n /*,int level*/) {
+    const std::function<double(const base::DataVector&)>& funct, int dim, int n /*,int level*/) {
   auto numfunc = [&funct](const base::DataVector& input,
-                          std::vector<std::pair<double, double>>& ranges) {
+                          const std::vector<std::pair<double, double>>& ranges) {
     base::DataVector temp(input.size());
     for (base::DataVector::size_type i = 0; i < input.size(); ++i) {
       temp[i] = input[i] * (ranges[i].second - ranges[i].first) + ranges[i].first;
@@ -561,9 +558,9 @@ double PolynomialChaosExpansion::sparseGridQuadratureL2(
   return results.sum() / static_cast<double>(num);
 }
 double PolynomialChaosExpansion::adaptiveQuadratureL2(
-    std::function<double(const base::DataVector&)> funct, int dim, size_t n) {
+    const std::function<double(const base::DataVector&)>& funct, int dim, size_t n) {
   auto numfunc = [&funct](const base::DataVector& input,
-                          std::vector<std::pair<double, double>>& ranges) {
+                          const std::vector<std::pair<double, double>>& ranges) {
     base::DataVector temp(input.size());
     for (base::DataVector::size_type i = 0; i < input.size(); ++i) {
       temp[i] = (input[i]) * (ranges[i].second - ranges[i].first) + ranges[i].first;
@@ -704,7 +701,7 @@ base::DataVector PolynomialChaosExpansion::calculateCoefficients(int n, std::str
   // calculate aj for each entry in the multiindex
   for (std::vector<std::vector<int>>::size_type j = 0; j < index.size(); ++j) {
     // lambdas for composite function to be integrated
-    auto numfunc = [this, &index, j](const base::DataVector& vec) {
+    auto numfunc = [this, &index, &j](const base::DataVector& vec) {
       double prd = 1;
       for (base::DataVector::size_type i = 0; i < vec.getSize(); ++i) {
         prd *= evals[static_cast<int>(types[i])](index[j][i], vec[i]) *

@@ -33,7 +33,7 @@ int main() {
   of.open("plot_pce/" + path + ".txt", std::ios::out | std::ios::trunc);
   of << std::fixed;
   of << std::setprecision(std::numeric_limits<double>::digits10 + 1);
-  int points = 10000;
+  int points = 2000;
   int dim = 2;
   ee.printGrid(dim, 1, "plot_pce/" + path + "(base-level5).txt");
   std::cout << "base" << '\n';
