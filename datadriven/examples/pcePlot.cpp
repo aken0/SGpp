@@ -14,6 +14,9 @@
 double e(const sgpp::base::DataVector& vec) { return (vec[0] * vec[0] * vec[0] - vec[1] * vec[1]); }
 double f(const sgpp::base::DataVector& vec) { return 1.0; }
 double g(const sgpp::base::DataVector& vec) {
+  if (vec[0] == 0 && vec[1] == 0) {
+    return 100;
+  }
   return 1 + (std::sin(vec[0]) + std::cos(vec[1])) / std::exp(vec[1]);
 }
 int main() {
@@ -21,10 +24,8 @@ int main() {
       e, 5,
       std::vector<sgpp::datadriven::distributionType>{sgpp::datadriven::distributionType::Uniform,
                                                       sgpp::datadriven::distributionType::Uniform},
-      std::vector<std::pair<double, double>>{
-          std::pair<double, double>{-1, 1},
-          std::pair<double, double>{-1, 1},
-      },
+      std::vector<std::pair<double, double>>{std::pair<double, double>{-1, 1},
+                                             std::pair<double, double>{-1, 1}},
       0, 0);
   std::fstream of;
   std::string path;
@@ -33,7 +34,7 @@ int main() {
   of.open("plot_pce/" + path + ".txt", std::ios::out | std::ios::trunc);
   of << std::fixed;
   of << std::setprecision(std::numeric_limits<double>::digits10 + 1);
-  int points = 2000;
+  int points = 20000;
   int dim = 2;
   ee.printGrid(dim, 1, "plot_pce/" + path + "(base-level5).txt");
   std::cout << "base" << '\n';
