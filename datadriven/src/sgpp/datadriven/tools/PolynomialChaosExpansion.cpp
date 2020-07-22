@@ -492,7 +492,6 @@ double PolynomialChaosExpansion::sparseGridQuadratureL2(
     grid->getGenerator().regular(i);
     ++i;
   }
-  std::cout << "number of grid points: " << gridStorage.getSize() << std::endl;
 
   /**
    * Calculate the surplus vector alpha for the interpolant of \f$
