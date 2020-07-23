@@ -52,8 +52,8 @@ int main() {
     of << re << ',';
   }
 
-  ee.printGrid(dim, 4000, "plot_pce/" + path + "(e-level5).txt");
-  ee.printAdaptiveGrid(f, dim, 4000, "plot_pce/" + path + "(f-level5).txt");
+  ee.printGrid(dim, 2000, "plot_pce/" + path + "(e-level5).txt");
+  ee.printAdaptiveGrid(f, dim, 2000, "plot_pce/" + path + "(f-level5).txt");
   std::cout << "f" << '\n';
   of << '\n';
   for (int i = 50; i <= points; i *= 1.5) {
