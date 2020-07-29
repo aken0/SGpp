@@ -14,8 +14,8 @@
 double e(const sgpp::base::DataVector& vec) { return (vec[0] * vec[0] * vec[0] - vec[1] * vec[1]); }
 double f(const sgpp::base::DataVector& vec) { return 1.0; }
 double g(const sgpp::base::DataVector& vec) {
-  // return 1 + (std::sin(vec[0]) + std::cos(vec[1])) / std::exp(vec[1]);
-  return std::exp(-200 * (std::pow(vec[0] - 0.8, 2) + std::pow(vec[1] - 0.8, 2)));
+  return 1 + (std::sin(vec[0]) + std::cos(vec[1])) / std::exp(vec[1]);
+  // return std::exp(-200 * (std::pow(vec[0] - 0.8, 2) + std::pow(vec[1] - 0.8, 2)));
 }
 int main() {
   sgpp::datadriven::PolynomialChaosExpansion ee = sgpp::datadriven::PolynomialChaosExpansion(

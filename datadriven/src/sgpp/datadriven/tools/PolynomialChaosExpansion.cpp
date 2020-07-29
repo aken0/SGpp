@@ -19,6 +19,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "sgpp/base/tools/DistributionNormal.hpp"
 namespace sgpp {
 namespace datadriven {
 PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const base::DataVector&)> f,
@@ -166,7 +168,6 @@ double PolynomialChaosExpansion::monteCarloQuad(
   for (std::vector<std::pair<double, double>>::size_type i = 0; i < ranges.size(); ++i) {
     dists[i] = std::uniform_real_distribution<double>{ranges[i].first, ranges[i].second};
   }
-  // lambda
   auto gen = [&funct, &dists, &mersenne]() {
     base::DataVector randvec(dists.size());
     for (std::vector<std::uniform_real_distribution<double>>::size_type i = 0; i < dists.size();
@@ -218,7 +219,6 @@ void PolynomialChaosExpansion::printAdaptiveGrid(
 
   std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearBoundaryGrid(dim));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
-  // generate starting grid
   grid->getGenerator().regular(1);
 
   base::DataVector coeffs(gridStorage.getSize());
@@ -395,7 +395,6 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
 
   std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearBoundaryGrid(dim));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
-  // generate starting grid
   grid->getGenerator().regular(1);
 
   base::DataVector coeffs(gridStorage.getSize());
@@ -575,7 +574,6 @@ double PolynomialChaosExpansion::adaptiveQuadratureL2(
 
   std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearBoundaryGrid(dim));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
-  // generate starting grid
   grid->getGenerator().regular(1);
 
   base::DataVector coeffs(gridStorage.getSize());
@@ -701,11 +699,10 @@ std::vector<std::vector<int>> PolynomialChaosExpansion::multiIndex(int dimension
   return index;
 }
 base::DataVector PolynomialChaosExpansion::calculateCoefficients(int n, std::string method) {
-  auto index = PolynomialChaosExpansion::multiIndex(static_cast<int>(types.size()), order);
+  auto index = multiIndex(static_cast<int>(types.size()), order);
   base::DataVector result(index.size());
-  // calculate aj for each entry in the multiindex
+  // calculate aj for each entry in the multiIndex
   for (std::vector<std::vector<int>>::size_type j = 0; j < index.size(); ++j) {
-    // lambdas for composite function to be integrated
     auto numfunc = [this, &index, &j](const base::DataVector& vec) {
       double prd = 1;
       for (base::DataVector::size_type i = 0; i < vec.getSize(); ++i) {
@@ -736,15 +733,17 @@ base::DataVector PolynomialChaosExpansion::calculateCoefficients(int n, std::str
   this->coefficients = result;
   return result;
 }
+
 base::DataVector PolynomialChaosExpansion::getCoefficients() { return coefficients; }
 
 void PolynomialChaosExpansion::clearCoefficients() { this->coefficients.clear(); }
+
 double PolynomialChaosExpansion::evalExpansion(const base::DataVector& xi, int n,
                                                std::string method) {
   if (coefficients.empty()) {
     calculateCoefficients(n, method);
   }
-  auto index = PolynomialChaosExpansion::multiIndex(static_cast<int>(types.size()), order);
+  auto index = multiIndex(static_cast<int>(types.size()), order);
   double sum = 0.0;
   for (std::vector<std::vector<int>>::size_type j = 0; j < index.size(); ++j) {
     double prod = 1.0;
@@ -755,7 +754,8 @@ double PolynomialChaosExpansion::evalExpansion(const base::DataVector& xi, int n
   }
   return sum;
 }
-// sample target and compare to pce eval
+
+// sample response and compare to pce eval
 double PolynomialChaosExpansion::getL2Error(int n, std::string method) {
   int dim = static_cast<int>(types.size());
   std::vector<std::uniform_real_distribution<double>> dists(dim);

@@ -9,6 +9,9 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "sgpp/base/tools/DistributionNormal.hpp"
+#include "sgpp/base/tools/DistributionTruncNormal.hpp"
 // functions to be integrated
 double e(const sgpp::base::DataVector& vec) { return vec[0] * vec[0] * vec[0] - vec[1] * vec[1]; }
 double f(const sgpp::base::DataVector& vec) { return 1.0; }
@@ -20,28 +23,31 @@ int main() {
   std::string path;
   std::cout << "enter path: " << '\n';
   std::cin >> path;
-  of.open("plot/" + path + "(pce).txt", std::ios::out | std::ios::trunc);
+  of.open("plot_pce/sampleDist.txt", std::ios::out | std::ios::trunc);
   of << std::fixed;
   of << std::setprecision(9);
-  for (int i = 1; i < 20; ++i) {
-    sgpp::datadriven::PolynomialChaosExpansion ee =
-        sgpp::datadriven::PolynomialChaosExpansion(g, i,
-                                                   std::vector<sgpp::datadriven::distributionType>{
-                                                       sgpp::datadriven::distributionType::Uniform,
-                                                       sgpp::datadriven::distributionType::Uniform},
-                                                   std::vector<std::pair<double, double>>{
-                                                       std::pair<double, double>{-1, 1},
-                                                       std::pair<double, double>{-1, 1},
-                                                   },
-                                                   0, 0);
-    std::cout << ee.sparseGridQuadrature(e, 2, 60000) << '\n';
-    /*
-    auto re = ee.calculateCoefficients();
-    for (auto entry : re) {
-      of << entry << ',';
-    }
-    */
-    of << '\n';
+  sgpp::base::DistributionTruncNormal distN(0, 1, -2, 2);
+  for (int i = 0; i < 1000000; ++i) {
+    of << distN.sample() << ',';
   }
+  /*
+  sgpp::datadriven::PolynomialChaosExpansion ee = sgpp::datadriven::PolynomialChaosExpansion(
+      g, 10,
+      std::vector<sgpp::datadriven::distributionType>{sgpp::datadriven::distributionType::Uniform,
+                                                      sgpp::datadriven::distributionType::Uniform},
+      std::vector<std::pair<double, double>>{
+          std::pair<double, double>{-1, 1},
+          std::pair<double, double>{-1, 1},
+      },
+      0, 0);
+  std::cout << ee.sparseGridQuadrature(e, 2, 60000) << '\n';
+  */
+  /*
+  auto re = ee.calculateCoefficients();
+  for (auto entry : re) {
+    of << entry << ',';
+  }
+  */
+  of << '\n';
   of.close();
 }
