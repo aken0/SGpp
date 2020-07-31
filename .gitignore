@@ -9,7 +9,7 @@
 
 #ignoring ide files
 *.vscode/
-
+.ccls-cache
 #ignoring c++ build files
 *.o
 *.os
