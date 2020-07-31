@@ -5,11 +5,10 @@
 
 #pragma once
 
-#include <sgpp/base/datatypes/DataVector.hpp>
-
 #include <chrono>
 #include <iostream>
 #include <random>
+#include <sgpp/base/datatypes/DataVector.hpp>
 #include <string>
 
 namespace sgpp {
@@ -20,10 +19,13 @@ namespace base {
  *
  */
 enum class DistributionType {
-  Uniform,     //  0
-  Normal,      //  1
-  Lognormal,   //  2
-  TruncNormal  // 3
+  Uniform,      //  0
+  Normal,       //  1
+  Lognormal,    //  2
+  TruncNormal,  // 3
+  Beta,
+  TruncExponential,
+  TruncGamma
 };
 
 /**

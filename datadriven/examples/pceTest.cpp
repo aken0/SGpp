@@ -3,15 +3,15 @@
 #include <iomanip>
 #include <iostream>
 #include <sgpp/base/datatypes/DataVector.hpp>
+#include <sgpp/base/tools/DistributionTruncExponential.hpp>
+#include <sgpp/base/tools/DistributionTruncGamma.hpp>
+#include <sgpp/base/tools/DistributionTruncNormal.hpp>
 #include <sgpp/datadriven/tools/PolynomialChaosExpansion.hpp>
 #include <sgpp/globaldef.hpp>
 #include <sgpp_base.hpp>
 #include <string>
 #include <utility>
 #include <vector>
-
-#include "sgpp/base/tools/DistributionNormal.hpp"
-#include "sgpp/base/tools/DistributionTruncNormal.hpp"
 // functions to be integrated
 double e(const sgpp::base::DataVector& vec) { return vec[0] * vec[0] * vec[0] - vec[1] * vec[1]; }
 double f(const sgpp::base::DataVector& vec) { return 1.0; }
@@ -26,7 +26,7 @@ int main() {
   of.open("plot_pce/sampleDist.txt", std::ios::out | std::ios::trunc);
   of << std::fixed;
   of << std::setprecision(9);
-  sgpp::base::DistributionTruncNormal distN(0, 1, -2, 2);
+  sgpp::base::DistributionTruncExponential distN(100);
   for (int i = 0; i < 1000000; ++i) {
     of << distN.sample() << ',';
   }
