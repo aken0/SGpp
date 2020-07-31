@@ -777,5 +777,21 @@ double PolynomialChaosExpansion::getL2Error(int n, std::string method) {
   std::generate(results.begin(), results.end(), gen);
   return results.sum() / static_cast<double>(num);
 }
+double PolynomialChaosExpansion::getMean(int n, std::string method) {
+  if (coefficients.empty()) {
+    calculateCoefficients(n, method);
+  }
+  return coefficients[0];
+}
+double PolynomialChaosExpansion::getVariance(int n, std::string method) {
+  if (coefficients.empty()) {
+    calculateCoefficients(n, method);
+  }
+  base::DataVector temp;
+  temp.copyFrom(coefficients);
+  temp[0] = 0;
+  temp.sqr();
+  return temp.sum();
+}
 }  // namespace datadriven
 }  // namespace sgpp

@@ -34,7 +34,7 @@ class PolynomialChaosExpansion {
   std::vector<std::function<double(double)>> weights;
   std::vector<std::function<double(double)>> denoms;
   std::vector<std::function<double(double, double)>> evals;
-
+  // multiple functions should be moved to private and are just here for debugging
  public:
   PolynomialChaosExpansion(std::function<double(const base::DataVector&)> func, int order,
                            std::vector<distributionType> types,
@@ -43,6 +43,10 @@ class PolynomialChaosExpansion {
   ~PolynomialChaosExpansion();
 
   std::vector<std::vector<int>> multiIndex(int dimension, int order);
+  void printGrid(int dim, int n, std::string tFilename);
+
+  void printAdaptiveGrid(std::function<double(const base::DataVector&)> funct, int dim, size_t n,
+                         std::string tFilename);
   double monteCarloQuad(const std::function<double(const base::DataVector&)>& funct,
                         const size_t& n);
   double sparseGridQuadrature(const std::function<double(const base::DataVector&)>& funct, int dim,
@@ -57,10 +61,9 @@ class PolynomialChaosExpansion {
   base::DataVector getCoefficients();
   void clearCoefficients();
   double evalExpansion(const base::DataVector& xi, int n, std::string method);
+  double getMean(int n, std::string method);
+  double getVariance(int n, std::string method);
   double getL2Error(int n, std::string method);
-  void printGrid(int dim, int n, std::string tFilename);
-  void printAdaptiveGrid(std::function<double(const base::DataVector&)> funct, int dim, size_t n,
-                         std::string tFilename);
 };
 }  // namespace datadriven
 }  // namespace sgpp
