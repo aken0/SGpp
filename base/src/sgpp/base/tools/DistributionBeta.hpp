@@ -16,6 +16,8 @@ namespace sgpp {
 namespace base {
 
 /**
+ * Disclaimer: This implementation models the beta distribution defined in the Wiener-Askey scheme,
+ * and should not be confused with the textbook definition of a beta distribution
  */
 class DistributionBeta : public Distribution {
  public:
@@ -33,7 +35,14 @@ class DistributionBeta : public Distribution {
   /**
    *
    */
-  double sample() { return dist(gen); }
+  double sample() {
+    //
+    std::gamma_distribution<double> dist1(alpha + 1);
+    std::gamma_distribution<double> dist2(beta + 1);
+    auto num1 = dist1(gen);
+    auto num2 = dist2(gen);
+    return (num1 / (num1 + num2)) * 2 - 1;
+  }
 
   double eval(double x) {
     return (std::pow(1 - x, alpha) * std::pow(1 + x, beta)) /

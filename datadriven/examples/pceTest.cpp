@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <iostream>
 #include <sgpp/base/datatypes/DataVector.hpp>
+#include <sgpp/base/tools/DistributionBeta.hpp>
 #include <sgpp/base/tools/DistributionTruncExponential.hpp>
 #include <sgpp/base/tools/DistributionTruncGamma.hpp>
 #include <sgpp/base/tools/DistributionTruncNormal.hpp>
@@ -26,7 +27,7 @@ int main() {
   of.open("plot_pce/sampleDist.txt", std::ios::out | std::ios::trunc);
   of << std::fixed;
   of << std::setprecision(9);
-  sgpp::base::DistributionTruncExponential distN(100);
+  sgpp::base::DistributionBeta distN(7, 100);
   for (int i = 0; i < 1000000; ++i) {
     of << distN.sample() << ',';
   }
