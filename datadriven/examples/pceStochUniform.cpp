@@ -48,11 +48,11 @@ int main() {
   of << std::setprecision(9);
   sgpp::datadriven::PolynomialChaosExpansion ee = sgpp::datadriven::PolynomialChaosExpansion(
       f, 1,
-      std::vector<sgpp::datadriven::distributionType>{sgpp::datadriven::distributionType::Normal},
+      std::vector<sgpp::datadriven::distributionType>{sgpp::datadriven::distributionType::Uniform},
       std::vector<std::pair<double, double>>{
-          std::pair<double, double>{-20, 20},
+          std::pair<double, double>{-1, 1},
       },
-      2, 2);
+      0, 0);
   std::cout << "-----------------------------------------------------------------------------------"
             << '\n';
   std::cout << "-----------------------------------------------------------------------------------"
@@ -69,13 +69,13 @@ int main() {
 
   auto f1 = std::make_shared<Functf>();
   auto e1 = std::make_shared<Functe>();
-  sgpp::optimization::SplineResponseSurface surface(f1, sgpp::base::DataVector{-20},
-                                                    sgpp::base::DataVector{20},
+  sgpp::optimization::SplineResponseSurface surface(f1, sgpp::base::DataVector{-1},
+                                                    sgpp::base::DataVector{1},
                                                     sgpp::base::GridType::NakBsplineBoundary);
   surface.surplusAdaptive(200, 1);
   sgpp::base::DistributionsVector dists;
-  auto dist1 = std::make_shared<sgpp::base::DistributionTruncNormal>(0, 1, -20, 20);
-  auto dist2 = std::make_shared<sgpp::base::DistributionTruncNormal>(0, 1, -20, 20);
+  auto dist1 = std::make_shared<sgpp::base::DistributionUniform>(-1, 1);
+  auto dist2 = std::make_shared<sgpp::base::DistributionUniform>(-1, 1);
   dists.push_back(dist1);
   // dists.push_back(dist2);
   std::cout << surface.eval(sgpp::base::DataVector{0}) << ' ';
@@ -92,9 +92,9 @@ int main() {
 
   sgpp::datadriven::PolynomialChaosExpansion ee1 = sgpp::datadriven::PolynomialChaosExpansion(
       e, 3,
-      std::vector<sgpp::datadriven::distributionType>{sgpp::datadriven::distributionType::Normal},
+      std::vector<sgpp::datadriven::distributionType>{sgpp::datadriven::distributionType::Uniform},
       std::vector<std::pair<double, double>>{
-          std::pair<double, double>{-20, 20},
+          std::pair<double, double>{-1, 1},
       },
       2, 2);
   std::cout << ee1.getMean(200, "adaptiveGrid") << " pce mean" << '\n';
@@ -104,11 +104,11 @@ int main() {
     std::cout << entry << ", ";
   }
   std::cout << '\n';
-  sgpp::optimization::SplineResponseSurface surface2(e1, sgpp::base::DataVector{-20},
-                                                     sgpp::base::DataVector{20},
+  sgpp::optimization::SplineResponseSurface surface2(e1, sgpp::base::DataVector{-1},
+                                                     sgpp::base::DataVector{1},
                                                      sgpp::base::GridType::NakBsplineBoundary);
-  sgpp::optimization::SplineResponseSurface surface3(e1, sgpp::base::DataVector{-20},
-                                                     sgpp::base::DataVector{20},
+  sgpp::optimization::SplineResponseSurface surface3(e1, sgpp::base::DataVector{-1},
+                                                     sgpp::base::DataVector{1},
                                                      sgpp::base::GridType::NakBsplineBoundary);
   surface2.surplusAdaptive(200, 1);
   std::cout << surface2.eval(sgpp::base::DataVector{0}) << ' ';
@@ -119,11 +119,6 @@ int main() {
   std::cout << "surface mean" << '\n';
   std::cout << surface2.getVariance(dists, 100) << ' ';
   std::cout << "surface variance" << '\n';
-  surface3.surplusAdaptive(400, 1);
-  std::cout << surface3.getMean(dists, 100) << ' ';
-  std::cout << "surface3 mean" << '\n';
-  std::cout << surface3.getVariance(dists, 100) << ' ';
-  std::cout << "surface3 variance" << '\n';
   std::cout << "-----------------------------------------------------------------------------------"
             << '\n';
   std::cout << "-----------------------------------------------------------------------------------"

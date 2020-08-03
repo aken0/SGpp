@@ -285,13 +285,11 @@ void PolynomialChaosExpansion::printAdaptiveGrid(
     }
 
     if (!succHierarch) {
-      std::cout << "Hierarchizing...\n\n";
       sgpp::base::HierarchisationSLE hierSLE(*grid);
       sgpp::base::sle_solver::Eigen sleSolver;
 
       // solve linear system
       if (!sleSolver.solve(hierSLE, funEvals, coeffs)) {
-        std::cout << "Solving failed, exiting.\n";
         return;
       }
     }
@@ -330,7 +328,7 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
     ++i;
   }
   /**
-   * Calculate the surplus vector alpha for the interpolant of \f$
+   * Calculate the surplus vector for the interpolant of \f$
    * f(x)\f$.  Since the function can be evaluated at any
    * point. Hence. we simply evaluate it at the coordinates of the
    * grid points to obtain the nodal values. Then we use
@@ -358,13 +356,11 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
 
   base::DataVector coeffs(evals.getSize());
   if (!succHierarch) {
-    std::cout << "Hierarchizing...\n\n";
     sgpp::base::HierarchisationSLE hierSLE(*grid);
     sgpp::base::sle_solver::Eigen sleSolver;
 
     // solve linear system
     if (!sleSolver.solve(hierSLE, evals, coeffs)) {
-      std::cout << "Solving failed, exiting.\n";
       return 1;
     }
     // overwrite evals
@@ -456,13 +452,11 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
     }
 
     if (!succHierarch) {
-      std::cout << "Hierarchizing...\n\n";
       sgpp::base::HierarchisationSLE hierSLE(*grid);
       sgpp::base::sle_solver::Eigen sleSolver;
 
       // solve linear system
       if (!sleSolver.solve(hierSLE, funEvals, coeffs)) {
-        std::cout << "Solving failed, exiting.\n";
         return 1;
       }
     }
@@ -499,7 +493,7 @@ double PolynomialChaosExpansion::sparseGridQuadratureL2(
   }
 
   /**
-   * Calculate the surplus vector alpha for the interpolant of \f$
+   * Calculate the surplus vector for the interpolant of \f$
    * f(x)\f$.  Since the function can be evaluated at any
    * point. Hence. we simply evaluate it at the coordinates of the
    * grid points to obtain the nodal values. Then we use
@@ -528,13 +522,11 @@ double PolynomialChaosExpansion::sparseGridQuadratureL2(
 
   base::DataVector coeffs(evals.getSize());
   if (!succHierarch) {
-    std::cout << "Hierarchizing...\n\n";
     sgpp::base::HierarchisationSLE hierSLE(*grid);
     sgpp::base::sle_solver::Eigen sleSolver;
 
     // solve linear system
     if (!sleSolver.solve(hierSLE, evals, coeffs)) {
-      std::cout << "Solving failed, exiting.\n";
       return 1;
     }
     evals = coeffs;
@@ -634,13 +626,11 @@ double PolynomialChaosExpansion::adaptiveQuadratureL2(
     }
 
     if (!succHierarch) {
-      std::cout << "Hierarchizing...\n\n";
       sgpp::base::HierarchisationSLE hierSLE(*grid);
       sgpp::base::sle_solver::Eigen sleSolver;
 
       // solve linear system
       if (!sleSolver.solve(hierSLE, funEvals, coeffs)) {
-        std::cout << "Solving failed, exiting.\n";
         return 1;
       }
     }
@@ -787,10 +777,33 @@ double PolynomialChaosExpansion::getVariance(int n, std::string method) {
   if (coefficients.empty()) {
     calculateCoefficients(n, method);
   }
+  // order:hermite,jacobi,legendre,laguerre,genlaguerre
+  auto normalization = std::vector<std::function<double(double)>>{
+      {[](double j) { return std::sqrt(std::tgamma(j + 1.0)); }},
+      {[this](double j) {
+        return std::sqrt(
+            (std::pow(2.0, this->alpha + this->beta + 1.0) /
+             (2.0 * j + this->alpha + this->beta + 1.0)) *
+            ((std::tgamma(j + this->alpha + 1.0) * std::tgamma(j + this->beta + 1.0)) /
+             (std::tgamma(j + this->alpha + this->beta + 1.0) * std::tgamma(j + 1.0))));
+      }},
+      {[](double j) { return std::sqrt(1.0 / ((2.0 * j) + 1.0)); }},
+      {[](double j) { return 1.0; }},
+      {[this](double j) {
+        return std::sqrt(std::tgamma(j + this->alpha + 1.0) / std::tgamma(j + 1.0));
+      }}};
   base::DataVector temp(coefficients.getSize());
   temp.copyFrom(coefficients);
   temp.set(0, 0.0);
+  auto index = multiIndex(static_cast<int>(types.size()), order);
+  for (std::vector<std::vector<int>>::size_type j = 0; j < index.size(); ++j) {
+    for (std::vector<int>::size_type i = 0; i < index[j].size(); ++i) {
+      std::cout << normalization[static_cast<int>(types[i])](index[j][i]) << " index ";
+      temp[j] *= normalization[static_cast<int>(types[i])](index[j][i]);
+    }
+  }
   temp.sqr();
+  std::cout << '\n';
   return temp.sum();
 }
 }  // namespace datadriven
