@@ -167,6 +167,7 @@ int main() {
           ee.calculateCoefficients(i, method);
           auto re = ee.getL2Error(i, method);
           of << re << ',';
+          ee.clearCoefficients();
         }
         std::cout << "pce" << '\n';
         of << '\n';

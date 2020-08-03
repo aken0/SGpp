@@ -25,7 +25,7 @@ class DistributionBeta : public Distribution {
    * Constructor
    */
   explicit DistributionBeta(double alpha = 0, double beta = 0)
-      : Distribution(), alpha(alpha), beta(beta), dist(alpha, beta) {}
+      : Distribution(), alpha(alpha), beta(beta), dist1(alpha + 1), dist2(beta + 1) {}
 
   /**
    * Destructor
@@ -36,9 +36,6 @@ class DistributionBeta : public Distribution {
    *
    */
   double sample() {
-    //
-    std::gamma_distribution<double> dist1(alpha + 1);
-    std::gamma_distribution<double> dist2(beta + 1);
     auto num1 = dist1(gen);
     auto num2 = dist2(gen);
     return (num1 / (num1 + num2)) * 2 - 1;
@@ -62,7 +59,7 @@ class DistributionBeta : public Distribution {
  private:
   double alpha;
   double beta;
-  std::gamma_distribution<double> dist;
+  std::gamma_distribution<double> dist1;
   std::gamma_distribution<double> dist2;
 };
 }  // namespace base

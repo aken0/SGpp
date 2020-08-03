@@ -27,7 +27,7 @@ int main() {
   of.open("plot_pce/sampleDist.txt", std::ios::out | std::ios::trunc);
   of << std::fixed;
   of << std::setprecision(9);
-  sgpp::base::DistributionBeta distN(7, 100);
+  sgpp::base::DistributionBeta distN(2, 2);
   for (int i = 0; i < 1000000; ++i) {
     of << distN.sample() << ',';
   }
