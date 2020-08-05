@@ -7,6 +7,7 @@
 #include <functional>
 #include <map>
 #include <sgpp/base/datatypes/DataVector.hpp>
+#include <sgpp/base/tools/DistributionsVector.hpp>
 #include <sgpp/base/tools/OperationQuadratureMC.hpp>
 #include <sgpp/globaldef.hpp>
 #include <string>
@@ -20,6 +21,7 @@ class PolynomialChaosExpansion {
   std::function<double(const base::DataVector&)> func;
   int order;
   std::vector<distributionType> types;
+  sgpp::base::DistributionsVector distributions;
   std::vector<std::pair<double, double>> ranges;
   double alpha;
   double beta;
@@ -37,7 +39,7 @@ class PolynomialChaosExpansion {
   // multiple functions should be moved to private and are just here for debugging
  public:
   PolynomialChaosExpansion(std::function<double(const base::DataVector&)> func, int order,
-                           std::vector<distributionType> types,
+                           sgpp::base::DistributionsVector distributions,
                            std::vector<std::pair<double, double>> ranges, double alpha = 0.0,
                            double beta = 0.0);
   ~PolynomialChaosExpansion();

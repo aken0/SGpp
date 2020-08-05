@@ -24,10 +24,61 @@
 namespace sgpp {
 namespace datadriven {
 PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const base::DataVector&)> f,
-                                                   int order, std::vector<distributionType> types,
+                                                   int order,
+                                                   sgpp::base::DistributionsVector distributions,
                                                    std::vector<std::pair<double, double>> ranges,
                                                    double alpha, double beta)
-    : func(f), order(order), types(types), ranges(ranges), alpha(alpha), beta(beta) {
+    : order(order), distributions(distributions), ranges(ranges), alpha(alpha), beta(beta) {
+  types = std::vector<sgpp::datadriven::distributionType>(distributions.getSize());
+  for (std::vector<distributionType>::size_type i = 0; i < types.size(); ++i) {
+    if (distributions.get(i)->getType() == sgpp::base::DistributionType::Normal) {
+      types[i] = sgpp::datadriven::distributionType::Normal;
+    } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::TruncNormal) {
+      types[i] = sgpp::datadriven::distributionType::Normal;
+    } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::Lognormal) {
+      types[i] = sgpp::datadriven::distributionType::Normal;
+    } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::Uniform) {
+      types[i] = sgpp::datadriven::distributionType::Uniform;
+    } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::TruncGamma) {
+      types[i] = sgpp::datadriven::distributionType::Gamma;
+    } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::Beta) {
+      types[i] = sgpp::datadriven::distributionType::Beta;
+    } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::TruncExponential) {
+      types[i] = sgpp::datadriven::distributionType::Exponential;
+    }
+  }
+
+  func = [f, this](const base::DataVector& vec) {
+    base::DataVector temp(types.size());
+    for (std::vector<distributionType>::size_type i = 0; i < types.size(); ++i) {
+      auto characteristics = this->distributions.get(i)->getCharacteristics();
+      if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Normal) {
+        // temp[i] = (vec[i] - characteristics[0]) / characteristics[1];
+        // temp[i] = vec[i] * std::pow(characteristics[1], 2) + characteristics[0];
+        temp[i] = vec[i];
+      } else if (this->distributions.get(i)->getType() ==
+                 sgpp::base::DistributionType::TruncNormal) {
+        // temp[i] = (vec[i] - characteristics[0]) / characteristics[1];
+        // temp[i] = vec[i] * std::pow(characteristics[1], 2) + characteristics[0];
+        temp[i] = vec[i];
+      } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Lognormal) {
+        temp[i] = vec[i];
+      } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Uniform) {
+        // temp[i] = (vec[i] + (characteristics[1] + characteristics[0]) / 2) * ((characteristics[1]
+        // - characteristics[0]) / 2);
+        temp[i] = vec[i];
+      } else if (this->distributions.get(i)->getType() ==
+                 sgpp::base::DistributionType::TruncGamma) {
+        temp[i] = vec[i];
+      } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Beta) {
+        temp[i] = vec[i];
+      } else if (this->distributions.get(i)->getType() ==
+                 sgpp::base::DistributionType::TruncExponential) {
+        temp[i] = vec[i];
+      }
+    }
+    return f(temp);
+  };
   // order:hermite,jacobi,legendre,laguerre,genlaguerre
   this->weights = std::vector<std::function<double(double)>>{
       {[](double x) { return std::exp(-std::pow(x, 2) / 2); }},
@@ -745,7 +796,7 @@ double PolynomialChaosExpansion::evalExpansion(const base::DataVector& xi, int n
   return sum;
 }
 
-// sample response and compare to pce eval
+// randomly sample the response and compare to the pce eval
 double PolynomialChaosExpansion::getL2Error(int n, std::string method) {
   int dim = static_cast<int>(types.size());
   std::vector<std::uniform_real_distribution<double>> dists(dim);
@@ -773,6 +824,7 @@ double PolynomialChaosExpansion::getMean(int n, std::string method) {
   }
   return coefficients[0];
 }
+// TODO fix beta/jacobi
 double PolynomialChaosExpansion::getVariance(int n, std::string method) {
   if (coefficients.empty()) {
     calculateCoefficients(n, method);
@@ -790,7 +842,8 @@ double PolynomialChaosExpansion::getVariance(int n, std::string method) {
       {[](double j) { return std::sqrt(1.0 / ((2.0 * j) + 1.0)); }},
       {[](double j) { return 1.0; }},
       {[this](double j) {
-        return std::sqrt(std::tgamma(j + this->alpha + 1.0) / std::tgamma(j + 1.0));
+        return std::sqrt(std::tgamma(j + this->alpha + 1.0) /
+                         (std::tgamma(j + 1.0) * std::tgamma(this->alpha + 1.0)));
       }}};
   base::DataVector temp(coefficients.getSize());
   temp.copyFrom(coefficients);
@@ -798,8 +851,28 @@ double PolynomialChaosExpansion::getVariance(int n, std::string method) {
   auto index = multiIndex(static_cast<int>(types.size()), order);
   for (std::vector<std::vector<int>>::size_type j = 0; j < index.size(); ++j) {
     for (std::vector<int>::size_type i = 0; i < index[j].size(); ++i) {
+      auto characteristics = this->distributions.get(i)->getCharacteristics();
+      if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Normal) {
+        temp[j] *= normalization[static_cast<int>(types[i])](index[j][i]);
+      } else if (this->distributions.get(i)->getType() ==
+                 sgpp::base::DistributionType::TruncNormal) {
+        temp[j] *= normalization[static_cast<int>(types[i])](index[j][i]);
+      } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Lognormal) {
+        temp[j] *= normalization[static_cast<int>(types[i])](index[j][i]);
+      } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Uniform) {
+        temp[j] *= normalization[static_cast<int>(types[i])](index[j][i]);
+        // temp[j] = (temp[j] * (characteristics[1] - characteristics[0]) / 2) +
+        // ((characteristics[1] + characteristics[0]) / 2);
+      } else if (this->distributions.get(i)->getType() ==
+                 sgpp::base::DistributionType::TruncGamma) {
+        temp[j] *= normalization[static_cast<int>(types[i])](index[j][i]);
+      } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Beta) {
+        temp[j] *= normalization[static_cast<int>(types[i])](index[j][i]);
+      } else if (this->distributions.get(i)->getType() ==
+                 sgpp::base::DistributionType::TruncExponential) {
+        temp[j] *= normalization[static_cast<int>(types[i])](index[j][i]);
+      }
       std::cout << normalization[static_cast<int>(types[i])](index[j][i]) << " index ";
-      temp[j] *= normalization[static_cast<int>(types[i])](index[j][i]);
     }
   }
   temp.sqr();

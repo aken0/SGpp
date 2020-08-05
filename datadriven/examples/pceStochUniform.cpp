@@ -46,13 +46,19 @@ int main() {
   of.open("plot_pce/stochasticTest.txt", std::ios::out | std::ios::trunc);
   of << std::fixed;
   of << std::setprecision(9);
-  sgpp::datadriven::PolynomialChaosExpansion ee = sgpp::datadriven::PolynomialChaosExpansion(
-      f, 1,
-      std::vector<sgpp::datadriven::distributionType>{sgpp::datadriven::distributionType::Uniform},
-      std::vector<std::pair<double, double>>{
-          std::pair<double, double>{-1, 1},
-      },
-      0, 0);
+  double a = -1;
+  double b = 1;
+  sgpp::base::DistributionsVector dists;
+  auto dist1 = std::make_shared<sgpp::base::DistributionUniform>(a, b);
+  auto dist2 = std::make_shared<sgpp::base::DistributionUniform>(a, b);
+  dists.push_back(dist1);
+  // dists.push_back(dist2);
+  sgpp::datadriven::PolynomialChaosExpansion ee =
+      sgpp::datadriven::PolynomialChaosExpansion(f, 1, dists,
+                                                 std::vector<std::pair<double, double>>{
+                                                     std::pair<double, double>{a, b},
+                                                 },
+                                                 3, 2);
   std::cout << "-----------------------------------------------------------------------------------"
             << '\n';
   std::cout << "-----------------------------------------------------------------------------------"
@@ -69,15 +75,10 @@ int main() {
 
   auto f1 = std::make_shared<Functf>();
   auto e1 = std::make_shared<Functe>();
-  sgpp::optimization::SplineResponseSurface surface(f1, sgpp::base::DataVector{-1},
-                                                    sgpp::base::DataVector{1},
+  sgpp::optimization::SplineResponseSurface surface(f1, sgpp::base::DataVector{a},
+                                                    sgpp::base::DataVector{b},
                                                     sgpp::base::GridType::NakBsplineBoundary);
   surface.surplusAdaptive(200, 1);
-  sgpp::base::DistributionsVector dists;
-  auto dist1 = std::make_shared<sgpp::base::DistributionUniform>(-1, 1);
-  auto dist2 = std::make_shared<sgpp::base::DistributionUniform>(-1, 1);
-  dists.push_back(dist1);
-  // dists.push_back(dist2);
   std::cout << surface.eval(sgpp::base::DataVector{0}) << ' ';
   std::cout << "surface eval" << '\n';
   std::cout << surface.getIntegral() << ' ';
@@ -90,25 +91,22 @@ int main() {
   std::cout << "-----------------------------------------------------------------------------------"
             << '\n';
 
-  sgpp::datadriven::PolynomialChaosExpansion ee1 = sgpp::datadriven::PolynomialChaosExpansion(
-      e, 3,
-      std::vector<sgpp::datadriven::distributionType>{sgpp::datadriven::distributionType::Uniform},
-      std::vector<std::pair<double, double>>{
-          std::pair<double, double>{-1, 1},
-      },
-      2, 2);
+  sgpp::datadriven::PolynomialChaosExpansion ee1 =
+      sgpp::datadriven::PolynomialChaosExpansion(e, 3, dists,
+                                                 std::vector<std::pair<double, double>>{
+                                                     std::pair<double, double>{a, b},
+                                                 },
+                                                 3, 2);
   std::cout << ee1.getMean(200, "adaptiveGrid") << " pce mean" << '\n';
   std::cout << ee1.getVariance(200, "adaptiveGrid") << " pce variance" << '\n';
+  std::cout << ee1.evalExpansion(sgpp::base::DataVector{0}, 200, "adaptiveGrid") << " pce eval \n";
   auto stuff2 = ee1.getCoefficients();
   for (auto entry : stuff2) {
     std::cout << entry << ", ";
   }
   std::cout << '\n';
-  sgpp::optimization::SplineResponseSurface surface2(e1, sgpp::base::DataVector{-1},
-                                                     sgpp::base::DataVector{1},
-                                                     sgpp::base::GridType::NakBsplineBoundary);
-  sgpp::optimization::SplineResponseSurface surface3(e1, sgpp::base::DataVector{-1},
-                                                     sgpp::base::DataVector{1},
+  sgpp::optimization::SplineResponseSurface surface2(e1, sgpp::base::DataVector{a},
+                                                     sgpp::base::DataVector{b},
                                                      sgpp::base::GridType::NakBsplineBoundary);
   surface2.surplusAdaptive(200, 1);
   std::cout << surface2.eval(sgpp::base::DataVector{0}) << ' ';
