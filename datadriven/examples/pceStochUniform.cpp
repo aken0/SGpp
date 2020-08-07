@@ -46,8 +46,11 @@ int main() {
   of.open("plot_pce/stochasticTest.txt", std::ios::out | std::ios::trunc);
   of << std::fixed;
   of << std::setprecision(9);
-  double a = -1;
-  double b = 1;
+
+  std::cout << std::fixed;
+  std::cout << std::setprecision(9);
+  double a = -15;
+  double b = 15;
   sgpp::base::DistributionsVector dists;
   auto dist1 = std::make_shared<sgpp::base::DistributionUniform>(a, b);
   auto dist2 = std::make_shared<sgpp::base::DistributionUniform>(a, b);

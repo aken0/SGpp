@@ -31,18 +31,27 @@ PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const ba
     : order(order), distributions(distributions), ranges(ranges), alpha(alpha), beta(beta) {
   types = std::vector<sgpp::datadriven::distributionType>(distributions.getSize());
   for (std::vector<distributionType>::size_type i = 0; i < types.size(); ++i) {
+    auto characteristics = this->distributions.get(i)->getCharacteristics();
     if (distributions.get(i)->getType() == sgpp::base::DistributionType::Normal) {
       types[i] = sgpp::datadriven::distributionType::Normal;
+      this->ranges[i].first = ranges[i].first + characteristics[0];
+      this->ranges[i].second = ranges[i].second + characteristics[0];
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::TruncNormal) {
       types[i] = sgpp::datadriven::distributionType::Normal;
+      this->ranges[i].first = ranges[i].first + characteristics[0];
+      this->ranges[i].second = ranges[i].second + characteristics[0];
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::Lognormal) {
       types[i] = sgpp::datadriven::distributionType::Normal;
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::Uniform) {
       types[i] = sgpp::datadriven::distributionType::Uniform;
+      this->ranges[i].first = -(1.0);
+      this->ranges[i].second = (1.0);
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::TruncGamma) {
       types[i] = sgpp::datadriven::distributionType::Gamma;
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::Beta) {
       types[i] = sgpp::datadriven::distributionType::Beta;
+      this->ranges[i].first = -(1.0);
+      this->ranges[i].second = (1.0);
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::TruncExponential) {
       types[i] = sgpp::datadriven::distributionType::Exponential;
     }
@@ -54,19 +63,20 @@ PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const ba
       auto characteristics = this->distributions.get(i)->getCharacteristics();
       if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Normal) {
         // temp[i] = (vec[i] - characteristics[0]) / characteristics[1];
-        // temp[i] = vec[i] * std::pow(characteristics[1], 2) + characteristics[0];
-        temp[i] = vec[i];
+        temp[i] = vec[i] * characteristics[1] + characteristics[0];
+        // temp[i] = vec[i];
       } else if (this->distributions.get(i)->getType() ==
                  sgpp::base::DistributionType::TruncNormal) {
         // temp[i] = (vec[i] - characteristics[0]) / characteristics[1];
-        // temp[i] = vec[i] * std::pow(characteristics[1], 2) + characteristics[0];
-        temp[i] = vec[i];
+        temp[i] = vec[i] * characteristics[1] + characteristics[0];
+        // temp[i] = vec[i];
       } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Lognormal) {
         temp[i] = vec[i];
       } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Uniform) {
-        // temp[i] = (vec[i] + (characteristics[1] + characteristics[0]) / 2) * ((characteristics[1]
-        // - characteristics[0]) / 2);
-        temp[i] = vec[i];
+        temp[i] = (vec[i] * (characteristics[1] - characteristics[0]) / 2) +
+                  ((characteristics[1] + characteristics[0]) / 2);
+
+        // temp[i] = vec[i];
       } else if (this->distributions.get(i)->getType() ==
                  sgpp::base::DistributionType::TruncGamma) {
         temp[i] = vec[i];
@@ -872,7 +882,7 @@ double PolynomialChaosExpansion::getVariance(int n, std::string method) {
                  sgpp::base::DistributionType::TruncExponential) {
         temp[j] *= normalization[static_cast<int>(types[i])](index[j][i]);
       }
-      std::cout << normalization[static_cast<int>(types[i])](index[j][i]) << " index ";
+      std::cout << normalization[static_cast<int>(types[i])](index[j][i]) << " normalization ";
     }
   }
   temp.sqr();

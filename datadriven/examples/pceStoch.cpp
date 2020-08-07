@@ -49,14 +49,16 @@ int main() {
   std::cout << std::fixed;
   std::cout << std::setprecision(9);
   sgpp::base::DistributionsVector dists;
-  auto dist1 = std::make_shared<sgpp::base::DistributionTruncNormal>(2, 2, -20, 20);
-  // auto dist2 = std::make_shared<sgpp::base::DistributionTruncNormal>(0, 1, -20, 20);
+  double l = -1000;
+  double r = 1000;
+  auto dist1 = std::make_shared<sgpp::base::DistributionTruncNormal>(20, 7, l, r);
+  // auto dist2 = std::make_shared<sgpp::base::DistributionTruncNormal>(0, 1, -30, 30);
   dists.push_back(dist1);
   // dists.push_back(dist2);
   sgpp::datadriven::PolynomialChaosExpansion ee =
       sgpp::datadriven::PolynomialChaosExpansion(f, 1, dists,
                                                  std::vector<std::pair<double, double>>{
-                                                     std::pair<double, double>{-20, 20},
+                                                     std::pair<double, double>{l, r},
                                                  },
                                                  0, 0);
   std::cout << "-----------------------------------------------------------------------------------"
@@ -77,8 +79,8 @@ int main() {
 
   auto f1 = std::make_shared<Functf>();
   auto e1 = std::make_shared<Functe>();
-  sgpp::optimization::SplineResponseSurface surface(f1, sgpp::base::DataVector{-20},
-                                                    sgpp::base::DataVector{20},
+  sgpp::optimization::SplineResponseSurface surface(f1, sgpp::base::DataVector{l},
+                                                    sgpp::base::DataVector{r},
                                                     sgpp::base::GridType::NakBsplineBoundary);
   surface.surplusAdaptive(200, 1);
   std::cout << surface.eval(sgpp::base::DataVector{0}) << ' ';
@@ -96,7 +98,7 @@ int main() {
   sgpp::datadriven::PolynomialChaosExpansion ee1 =
       sgpp::datadriven::PolynomialChaosExpansion(e, 3, dists,
                                                  std::vector<std::pair<double, double>>{
-                                                     std::pair<double, double>{-20, 20},
+                                                     std::pair<double, double>{l, r},
                                                  },
                                                  0, 0);
   std::cout << ee1.getMean(400, "adaptiveGrid") << " pce mean" << '\n';
@@ -108,8 +110,8 @@ int main() {
     std::cout << entry << ", ";
   }
   std::cout << '\n';
-  sgpp::optimization::SplineResponseSurface surface2(e1, sgpp::base::DataVector{-20},
-                                                     sgpp::base::DataVector{20},
+  sgpp::optimization::SplineResponseSurface surface2(e1, sgpp::base::DataVector{l},
+                                                     sgpp::base::DataVector{r},
                                                      sgpp::base::GridType::NakBsplineBoundary);
   surface2.surplusAdaptive(200, 1);
   std::cout << surface2.eval(sgpp::base::DataVector{0}) << ' ';
