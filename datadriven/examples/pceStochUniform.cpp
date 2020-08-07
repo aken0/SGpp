@@ -49,8 +49,8 @@ int main() {
 
   std::cout << std::fixed;
   std::cout << std::setprecision(9);
-  double a = -15;
-  double b = 15;
+  double a = -40000;
+  double b = 777;
   sgpp::base::DistributionsVector dists;
   auto dist1 = std::make_shared<sgpp::base::DistributionUniform>(a, b);
   auto dist2 = std::make_shared<sgpp::base::DistributionUniform>(a, b);

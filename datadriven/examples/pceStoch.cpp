@@ -49,9 +49,9 @@ int main() {
   std::cout << std::fixed;
   std::cout << std::setprecision(9);
   sgpp::base::DistributionsVector dists;
-  double l = -1000;
-  double r = 1000;
-  auto dist1 = std::make_shared<sgpp::base::DistributionTruncNormal>(20, 7, l, r);
+  double l = -20;
+  double r = 20;
+  auto dist1 = std::make_shared<sgpp::base::DistributionTruncNormal>(10, .5, l, r);
   // auto dist2 = std::make_shared<sgpp::base::DistributionTruncNormal>(0, 1, -30, 30);
   dists.push_back(dist1);
   // dists.push_back(dist2);

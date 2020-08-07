@@ -62,14 +62,10 @@ PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const ba
     for (std::vector<distributionType>::size_type i = 0; i < types.size(); ++i) {
       auto characteristics = this->distributions.get(i)->getCharacteristics();
       if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Normal) {
-        // temp[i] = (vec[i] - characteristics[0]) / characteristics[1];
         temp[i] = vec[i] * characteristics[1] + characteristics[0];
-        // temp[i] = vec[i];
       } else if (this->distributions.get(i)->getType() ==
                  sgpp::base::DistributionType::TruncNormal) {
-        // temp[i] = (vec[i] - characteristics[0]) / characteristics[1];
         temp[i] = vec[i] * characteristics[1] + characteristics[0];
-        // temp[i] = vec[i];
       } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Lognormal) {
         temp[i] = vec[i];
       } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Uniform) {
@@ -871,8 +867,6 @@ double PolynomialChaosExpansion::getVariance(int n, std::string method) {
         temp[j] *= normalization[static_cast<int>(types[i])](index[j][i]);
       } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Uniform) {
         temp[j] *= normalization[static_cast<int>(types[i])](index[j][i]);
-        // temp[j] = (temp[j] * (characteristics[1] - characteristics[0]) / 2) +
-        // ((characteristics[1] + characteristics[0]) / 2);
       } else if (this->distributions.get(i)->getType() ==
                  sgpp::base::DistributionType::TruncGamma) {
         temp[j] *= normalization[static_cast<int>(types[i])](index[j][i]);
