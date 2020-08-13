@@ -23,11 +23,8 @@ int main() {
   auto dist2 = std::make_shared<sgpp::base::DistributionUniform>(-1, 1);
   dists.push_back(dist1);
   dists.push_back(dist2);
-  sgpp::datadriven::PolynomialChaosExpansion ee = sgpp::datadriven::PolynomialChaosExpansion(
-      e, 5, dists,
-      std::vector<std::pair<double, double>>{std::pair<double, double>{-1, 1},
-                                             std::pair<double, double>{-1, 1}},
-      0, 0);
+  sgpp::datadriven::PolynomialChaosExpansion ee =
+      sgpp::datadriven::PolynomialChaosExpansion(e, 5, dists);
   std::fstream of;
   std::string path;
   std::cout << "enter path: " << '\n';
@@ -157,13 +154,7 @@ int main() {
     for (auto function : {e, f, g}) {
       for (auto order : {1, 3, 10}) {
         for (int i = 20; i <= points; i *= 1.5) {
-          auto ee =
-              sgpp::datadriven::PolynomialChaosExpansion(function, order, dists,
-                                                         std::vector<std::pair<double, double>>{
-                                                             std::pair<double, double>{-1, 1},
-                                                             std::pair<double, double>{-1, 1},
-                                                         },
-                                                         0, 0);
+          auto ee = sgpp::datadriven::PolynomialChaosExpansion(function, order, dists);
           ee.calculateCoefficients(i, method);
           auto re = ee.getL2Error(i, method);
           of << re << ',';

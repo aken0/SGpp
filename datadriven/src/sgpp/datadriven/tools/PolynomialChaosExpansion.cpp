@@ -25,35 +25,46 @@ namespace sgpp {
 namespace datadriven {
 PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const base::DataVector&)> f,
                                                    int order,
-                                                   sgpp::base::DistributionsVector distributions,
-                                                   std::vector<std::pair<double, double>> ranges,
-                                                   double alpha, double beta)
-    : order(order), distributions(distributions), ranges(ranges), alpha(alpha), beta(beta) {
+                                                   sgpp::base::DistributionsVector distributions)
+    : order(order),
+      distributions(distributions),
+      ranges(std::vector<std::pair<double, double>>(distributions.getSize())),
+      alpha(base::DataVector(distributions.getSize(), 0)),
+      beta(base::DataVector(distributions.getSize(), 0)) {
   types = std::vector<sgpp::datadriven::distributionType>(distributions.getSize());
   for (std::vector<distributionType>::size_type i = 0; i < types.size(); ++i) {
     auto characteristics = this->distributions.get(i)->getCharacteristics();
     if (distributions.get(i)->getType() == sgpp::base::DistributionType::Normal) {
       types[i] = sgpp::datadriven::distributionType::Normal;
-      this->ranges[i].first = ranges[i].first + characteristics[0];
-      this->ranges[i].second = ranges[i].second + characteristics[0];
+      ranges[i].first = -100;
+      ranges[i].second = 100;
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::TruncNormal) {
       types[i] = sgpp::datadriven::distributionType::Normal;
-      this->ranges[i].first = ranges[i].first + characteristics[0];
-      this->ranges[i].second = ranges[i].second + characteristics[0];
+      ranges[i].first = -100;
+      ranges[i].second = 100;
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::Lognormal) {
       types[i] = sgpp::datadriven::distributionType::Normal;
+      ranges[i].first = -100;
+      ranges[i].second = 100;
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::Uniform) {
       types[i] = sgpp::datadriven::distributionType::Uniform;
       this->ranges[i].first = -(1.0);
       this->ranges[i].second = (1.0);
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::TruncGamma) {
       types[i] = sgpp::datadriven::distributionType::Gamma;
+      this->alpha[i] = characteristics[0];
+      this->ranges[i].first = 0;
+      this->ranges[i].second = characteristics[1];
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::Beta) {
       types[i] = sgpp::datadriven::distributionType::Beta;
       this->ranges[i].first = -(1.0);
       this->ranges[i].second = (1.0);
+      this->alpha[i] = characteristics[0];
+      this->beta[i] = characteristics[1];
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::TruncExponential) {
       types[i] = sgpp::datadriven::distributionType::Exponential;
+      this->ranges[i].first = 0;
+      this->ranges[i].second = characteristics[0];
     }
   }
 
@@ -71,8 +82,6 @@ PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const ba
       } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Uniform) {
         temp[i] = (vec[i] * (characteristics[1] - characteristics[0]) / 2) +
                   ((characteristics[1] + characteristics[0]) / 2);
-
-        // temp[i] = vec[i];
       } else if (this->distributions.get(i)->getType() ==
                  sgpp::base::DistributionType::TruncGamma) {
         temp[i] = vec[i];
@@ -86,32 +95,36 @@ PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const ba
     return f(temp);
   };
   // order:hermite,jacobi,legendre,laguerre,genlaguerre
-  this->weights = std::vector<std::function<double(double)>>{
-      {[](double x) { return std::exp(-std::pow(x, 2) / 2); }},
-      {[this](double x) -> double {
-        return std::pow((1.0 - x), this->alpha) * std::pow((1.0 + x), this->beta);
+  this->weights = std::vector<std::function<double(double, size_t)>>{
+      {[](double x, size_t i) { return std::exp(-std::pow(x, 2) / 2); }},
+      {[this](double x, size_t i) -> double {
+        return std::pow((1.0 - x), this->alpha[i]) * std::pow((1.0 + x), this->beta[i]);
       }},
-      {[](double x) { return 1.0; }},
-      {[](double x) { return std::exp(-x); }},
-      {[this](double x) -> double { return std::pow(x, this->alpha) * std::exp(-x); }}};
-  this->denoms = std::vector<std::function<double(double)>>{
-      {[](double j) { return std::sqrt(2.0 * M_PI) * std::tgamma(j + 1.0); }},
-      {[this](double j) {
-        return ((std::pow(2.0, this->alpha + this->beta + 1.0) /
-                 (2.0 * j + this->alpha + this->beta + 1.0)) *
-                ((std::tgamma(j + this->alpha + 1.0) * std::tgamma(j + this->beta + 1.0)) /
-                 (std::tgamma(j + this->alpha + this->beta + 1.0) * std::tgamma(j + 1.0))));
+      {[](double x, size_t i) { return 1.0; }},
+      {[](double x, size_t i) { return std::exp(-x); }},
+      {[this](double x, size_t i) -> double {
+        return std::pow(x, this->alpha[i]) * std::exp(-x);
+      }}};
+  this->denoms = std::vector<std::function<double(double, size_t)>>{
+      {[](double j, size_t i) { return std::sqrt(2.0 * M_PI) * std::tgamma(j + 1.0); }},
+      {[this](double j, size_t i) {
+        return ((std::pow(2.0, this->alpha[i] + this->beta[i] + 1.0) /
+                 (2.0 * j + this->alpha[i] + this->beta[i] + 1.0)) *
+                ((std::tgamma(j + this->alpha[i] + 1.0) * std::tgamma(j + this->beta[i] + 1.0)) /
+                 (std::tgamma(j + this->alpha[i] + this->beta[i] + 1.0) * std::tgamma(j + 1.0))));
       }},
-      {[](double j) { return 2.0 / ((2.0 * j) + 1.0); }},
-      {[](double j) { return 1.0; }},
-      {[this](double j) { return std::tgamma(j + this->alpha + 1.0) / std::tgamma(j + 1.0); }}};
+      {[](double j, size_t i) { return 2.0 / ((2.0 * j) + 1.0); }},
+      {[](double j, size_t i) { return 1.0; }},
+      {[this](double j, size_t i) {
+        return std::tgamma(j + this->alpha[i] + 1.0) / std::tgamma(j + 1.0);
+      }}};
 
-  this->evals = std::vector<std::function<double(double, double)>>{
-      {[this](int n, double x) { return evalHermite(n, x); }},
-      {[this](int n, double x) { return evalJacobi(n, x); }},
-      {[this](int n, double x) { return evalLegendre(n, x); }},
-      {[this](int n, double x) { return evalLaguerre(n, x); }},
-      {[this](int n, double x) { return evalGenLaguerre(n, x); }}};
+  this->evals = std::vector<std::function<double(double, double, size_t)>>{
+      {[this](int n, double x, size_t i) { return evalHermite(n, x); }},
+      {[this](int n, double x, size_t i) { return evalJacobi(n, x, i); }},
+      {[this](int n, double x, size_t i) { return evalLegendre(n, x); }},
+      {[this](int n, double x, size_t i) { return evalLaguerre(n, x); }},
+      {[this](int n, double x, size_t i) { return evalGenLaguerre(n, x, i); }}};
 }
 
 PolynomialChaosExpansion::~PolynomialChaosExpansion() {}
@@ -170,22 +183,23 @@ double PolynomialChaosExpansion::evalLaguerre(int n, double x) {
   }
 }
 
-double PolynomialChaosExpansion::evalJacobi(int n, double x) {
+double PolynomialChaosExpansion::evalJacobi(int n, double x, size_t i) {
   if (n == 0) {
     return 1.0;
   } else if (n == 1) {
-    return (alpha + 1.0) + (alpha + beta + 2.0) * ((x - 1.0) / 2.0);
+    return (alpha[i] + 1.0) + (alpha[i] + beta[i] + 2.0) * ((x - 1.0) / 2.0);
   } else {
     double next = 0.0;
     double last = 1.0;
-    double curr = (alpha + 1.0) + (alpha + beta + 2.0) * ((x - 1.0) / 2.0);
+    double curr = (alpha[i] + 1.0) + (alpha[i] + beta[i] + 2.0) * ((x - 1.0) / 2.0);
     for (double i = 2.0; i <= n; ++i) {
-      double q1 = ((2.0 * i + alpha + beta - 1.0) *
-                   ((2.0 * i + alpha + beta) * (2.0 * i + alpha + beta - 2.0) * x +
-                    std::pow(alpha, 2) - std::pow(beta, 2))) /
-                  (2.0 * i * (i + alpha + beta) * (2.0 * i + alpha + beta - 2.0));
-      double q2 = (2.0 * (i + alpha - 1.0) * (i + beta - 1.0) * (2.0 * i + alpha + beta)) /
-                  (2.0 * i * (i + alpha + beta) * (2.0 * i + alpha + beta - 2.0));
+      double q1 = ((2.0 * i + alpha[i] + beta[i] - 1.0) *
+                   ((2.0 * i + alpha[i] + beta[i]) * (2.0 * i + alpha[i] + beta[i] - 2.0) * x +
+                    std::pow(alpha[i], 2) - std::pow(beta[i], 2))) /
+                  (2.0 * i * (i + alpha[i] + beta[i]) * (2.0 * i + alpha[i] + beta[i] - 2.0));
+      double q2 =
+          (2.0 * (i + alpha[i] - 1.0) * (i + beta[i] - 1.0) * (2.0 * i + alpha[i] + beta[i])) /
+          (2.0 * i * (i + alpha[i] + beta[i]) * (2.0 * i + alpha[i] + beta[i] - 2.0));
       next = q1 * curr - q2 * last;
       last = curr;
       curr = next;
@@ -194,17 +208,17 @@ double PolynomialChaosExpansion::evalJacobi(int n, double x) {
   }
 }
 
-double PolynomialChaosExpansion::evalGenLaguerre(int n, double x) {
+double PolynomialChaosExpansion::evalGenLaguerre(int n, double x, size_t i) {
   if (n == 0) {
     return 1.0;
   } else if (n == 1) {
-    return 1.0 + alpha - x;
+    return 1.0 + alpha[i] - x;
   } else {
     double next = 0.0;
     double last = 1.0;
-    double curr = 1.0 + alpha - x;
+    double curr = 1.0 + alpha[i] - x;
     for (double i = 1.0; i < n; ++i) {
-      next = ((2.0 * i + 1.0 + alpha - x) * curr - (i + alpha) * last) / (i + 1.0);
+      next = ((2.0 * i + 1.0 + alpha[i] - x) * curr - (i + alpha[i]) * last) / (i + 1.0);
       last = curr;
       curr = next;
     }
@@ -753,8 +767,8 @@ base::DataVector PolynomialChaosExpansion::calculateCoefficients(int n, std::str
     auto numfunc = [this, &index, &j](const base::DataVector& vec) {
       double prd = 1;
       for (base::DataVector::size_type i = 0; i < vec.getSize(); ++i) {
-        prd *= evals[static_cast<int>(types[i])](index[j][i], vec[i]) *
-               weights[static_cast<int>(types[i])](vec[i]);
+        prd *= evals[static_cast<int>(types[i])](index[j][i], vec[i], i) *
+               weights[static_cast<int>(types[i])](vec[i], i);
       }
       return prd;
     };
@@ -772,7 +786,7 @@ base::DataVector PolynomialChaosExpansion::calculateCoefficients(int n, std::str
     // calculate denominator
     double denom = 1.0;
     for (std::vector<distributionType>::size_type i = 0; i < types.size(); ++i) {
-      denom *= denoms[static_cast<int>(types[i])](index[j][i]);
+      denom *= denoms[static_cast<int>(types[i])](index[j][i], i);
     }
     double aj = num / denom;
     result[j] = aj;
@@ -785,17 +799,39 @@ base::DataVector PolynomialChaosExpansion::getCoefficients() { return coefficien
 
 void PolynomialChaosExpansion::clearCoefficients() { this->coefficients.clear(); }
 
+// TODO Debug this
 double PolynomialChaosExpansion::evalExpansion(const base::DataVector& xi, int n,
                                                std::string method) {
   if (coefficients.empty()) {
     calculateCoefficients(n, method);
+  }
+  base::DataVector temp(xi.size());
+  for (std::vector<distributionType>::size_type i = 0; i < types.size(); ++i) {
+    auto characteristics = this->distributions.get(i)->getCharacteristics();
+    if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Normal) {
+      temp[i] = (xi[i] - characteristics[0]) / characteristics[1];
+    } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::TruncNormal) {
+      temp[i] = (xi[i] - characteristics[0]) / characteristics[1];
+    } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Lognormal) {
+      temp[i] = xi[i];
+    } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Uniform) {
+      temp[i] = (xi[i] - ((characteristics[1] + characteristics[0]) / 2)) /
+                ((characteristics[1] - characteristics[0]) / 2);
+    } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::TruncGamma) {
+      temp[i] = xi[i];
+    } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Beta) {
+      temp[i] = xi[i];
+    } else if (this->distributions.get(i)->getType() ==
+               sgpp::base::DistributionType::TruncExponential) {
+      temp[i] = xi[i];
+    }
   }
   auto index = multiIndex(static_cast<int>(types.size()), order);
   double sum = 0.0;
   for (std::vector<std::vector<int>>::size_type j = 0; j < index.size(); ++j) {
     double prod = 1.0;
     for (std::vector<int>::size_type i = 0; i < index[j].size(); ++i) {
-      prod *= evals[static_cast<int>(types[i])](index[j][i], xi[i]);
+      prod *= evals[static_cast<int>(types[i])](index[j][i], temp[i], i);
     }
     sum += prod * coefficients[j];
   }
@@ -836,20 +872,20 @@ double PolynomialChaosExpansion::getVariance(int n, std::string method) {
     calculateCoefficients(n, method);
   }
   // order:hermite,jacobi,legendre,laguerre,genlaguerre
-  auto normalization = std::vector<std::function<double(double)>>{
-      {[](double j) { return std::sqrt(std::tgamma(j + 1.0)); }},
-      {[this](double j) {
+  auto normalization = std::vector<std::function<double(double, size_t)>>{
+      {[](double j, size_t i) { return std::sqrt(std::tgamma(j + 1.0)); }},
+      {[this](double j, size_t i) {
         return std::sqrt(
-            (std::pow(2.0, this->alpha + this->beta + 1.0) /
-             (2.0 * j + this->alpha + this->beta + 1.0)) *
-            ((std::tgamma(j + this->alpha + 1.0) * std::tgamma(j + this->beta + 1.0)) /
-             (std::tgamma(j + this->alpha + this->beta + 1.0) * std::tgamma(j + 1.0))));
+            (std::pow(2.0, this->alpha[i] + this->beta[i] + 1.0) /
+             (2.0 * j + this->alpha[i] + this->beta[i] + 1.0)) *
+            ((std::tgamma(j + this->alpha[i] + 1.0) * std::tgamma(j + this->beta[i] + 1.0)) /
+             (std::tgamma(j + this->alpha[i] + this->beta[i] + 1.0) * std::tgamma(j + 1.0))));
       }},
-      {[](double j) { return std::sqrt(1.0 / ((2.0 * j) + 1.0)); }},
-      {[](double j) { return 1.0; }},
-      {[this](double j) {
-        return std::sqrt(std::tgamma(j + this->alpha + 1.0) /
-                         (std::tgamma(j + 1.0) * std::tgamma(this->alpha + 1.0)));
+      {[](double j, size_t i) { return std::sqrt(1.0 / ((2.0 * j) + 1.0)); }},
+      {[](double j, size_t i) { return 1.0; }},
+      {[this](double j, size_t i) {
+        return std::sqrt(std::tgamma(j + this->alpha[i] + 1.0) /
+                         (std::tgamma(j + 1.0) * std::tgamma(this->alpha[i] + 1.0)));
       }}};
   base::DataVector temp(coefficients.getSize());
   temp.copyFrom(coefficients);
@@ -857,30 +893,10 @@ double PolynomialChaosExpansion::getVariance(int n, std::string method) {
   auto index = multiIndex(static_cast<int>(types.size()), order);
   for (std::vector<std::vector<int>>::size_type j = 0; j < index.size(); ++j) {
     for (std::vector<int>::size_type i = 0; i < index[j].size(); ++i) {
-      auto characteristics = this->distributions.get(i)->getCharacteristics();
-      if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Normal) {
-        temp[j] *= normalization[static_cast<int>(types[i])](index[j][i]);
-      } else if (this->distributions.get(i)->getType() ==
-                 sgpp::base::DistributionType::TruncNormal) {
-        temp[j] *= normalization[static_cast<int>(types[i])](index[j][i]);
-      } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Lognormal) {
-        temp[j] *= normalization[static_cast<int>(types[i])](index[j][i]);
-      } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Uniform) {
-        temp[j] *= normalization[static_cast<int>(types[i])](index[j][i]);
-      } else if (this->distributions.get(i)->getType() ==
-                 sgpp::base::DistributionType::TruncGamma) {
-        temp[j] *= normalization[static_cast<int>(types[i])](index[j][i]);
-      } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Beta) {
-        temp[j] *= normalization[static_cast<int>(types[i])](index[j][i]);
-      } else if (this->distributions.get(i)->getType() ==
-                 sgpp::base::DistributionType::TruncExponential) {
-        temp[j] *= normalization[static_cast<int>(types[i])](index[j][i]);
-      }
-      std::cout << normalization[static_cast<int>(types[i])](index[j][i]) << " normalization ";
+      temp[j] *= normalization[static_cast<int>(types[i])](index[j][i], i);
     }
   }
   temp.sqr();
-  std::cout << '\n';
   return temp.sum();
 }
 }  // namespace datadriven

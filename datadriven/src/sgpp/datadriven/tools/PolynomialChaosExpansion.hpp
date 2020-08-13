@@ -23,25 +23,23 @@ class PolynomialChaosExpansion {
   std::vector<distributionType> types;
   sgpp::base::DistributionsVector distributions;
   std::vector<std::pair<double, double>> ranges;
-  double alpha;
-  double beta;
+  base::DataVector alpha;
+  base::DataVector beta;
   base::DataVector coefficients;
 
  private:
   double evalLegendre(int n, double x);
   double evalHermite(int n, double x);
   double evalLaguerre(int n, double x);
-  double evalJacobi(int n, double x);
-  double evalGenLaguerre(int n, double x);
-  std::vector<std::function<double(double)>> weights;
-  std::vector<std::function<double(double)>> denoms;
-  std::vector<std::function<double(double, double)>> evals;
+  double evalJacobi(int n, double x, size_t i);
+  double evalGenLaguerre(int n, double x, size_t i);
+  std::vector<std::function<double(double, size_t)>> weights;
+  std::vector<std::function<double(double, size_t)>> denoms;
+  std::vector<std::function<double(double, double, size_t)>> evals;
   // multiple functions should be moved to private and are just here for debugging
  public:
   PolynomialChaosExpansion(std::function<double(const base::DataVector&)> func, int order,
-                           sgpp::base::DistributionsVector distributions,
-                           std::vector<std::pair<double, double>> ranges, double alpha = 0.0,
-                           double beta = 0.0);
+                           sgpp::base::DistributionsVector distributions);
   ~PolynomialChaosExpansion();
 
   std::vector<std::vector<int>> multiIndex(int dimension, int order);

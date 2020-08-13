@@ -49,19 +49,15 @@ int main() {
 
   std::cout << std::fixed;
   std::cout << std::setprecision(9);
-  double a = -40000;
-  double b = 777;
+  double a = -1000;
+  double b = 2000;
   sgpp::base::DistributionsVector dists;
   auto dist1 = std::make_shared<sgpp::base::DistributionUniform>(a, b);
   auto dist2 = std::make_shared<sgpp::base::DistributionUniform>(a, b);
   dists.push_back(dist1);
   // dists.push_back(dist2);
   sgpp::datadriven::PolynomialChaosExpansion ee =
-      sgpp::datadriven::PolynomialChaosExpansion(f, 1, dists,
-                                                 std::vector<std::pair<double, double>>{
-                                                     std::pair<double, double>{a, b},
-                                                 },
-                                                 3, 2);
+      sgpp::datadriven::PolynomialChaosExpansion(f, 1, dists);
   std::cout << "-----------------------------------------------------------------------------------"
             << '\n';
   std::cout << "-----------------------------------------------------------------------------------"
@@ -95,14 +91,10 @@ int main() {
             << '\n';
 
   sgpp::datadriven::PolynomialChaosExpansion ee1 =
-      sgpp::datadriven::PolynomialChaosExpansion(e, 3, dists,
-                                                 std::vector<std::pair<double, double>>{
-                                                     std::pair<double, double>{a, b},
-                                                 },
-                                                 3, 2);
-  std::cout << ee1.getMean(200, "adaptiveGrid") << " pce mean" << '\n';
-  std::cout << ee1.getVariance(200, "adaptiveGrid") << " pce variance" << '\n';
-  std::cout << ee1.evalExpansion(sgpp::base::DataVector{0}, 200, "adaptiveGrid") << " pce eval \n";
+      sgpp::datadriven::PolynomialChaosExpansion(e, 3, dists);
+  std::cout << ee1.getMean(400, "adaptiveGrid") << " pce mean" << '\n';
+  std::cout << ee1.getVariance(400, "adaptiveGrid") << " pce variance" << '\n';
+  std::cout << ee1.evalExpansion(sgpp::base::DataVector{0}, 400, "adaptiveGrid") << " pce eval \n";
   auto stuff2 = ee1.getCoefficients();
   for (auto entry : stuff2) {
     std::cout << entry << ", ";

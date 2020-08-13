@@ -49,18 +49,16 @@ int main() {
   std::cout << std::fixed;
   std::cout << std::setprecision(9);
   sgpp::base::DistributionsVector dists;
-  double l = -20;
-  double r = 20;
-  auto dist1 = std::make_shared<sgpp::base::DistributionTruncNormal>(10, .5, l, r);
+  double mean = 4;
+  double sigma = .2;
+  double l = 0;
+  double r = 100;
+  auto dist1 = std::make_shared<sgpp::base::DistributionTruncGamma>(1, 100);
   // auto dist2 = std::make_shared<sgpp::base::DistributionTruncNormal>(0, 1, -30, 30);
   dists.push_back(dist1);
   // dists.push_back(dist2);
   sgpp::datadriven::PolynomialChaosExpansion ee =
-      sgpp::datadriven::PolynomialChaosExpansion(f, 1, dists,
-                                                 std::vector<std::pair<double, double>>{
-                                                     std::pair<double, double>{l, r},
-                                                 },
-                                                 0, 0);
+      sgpp::datadriven::PolynomialChaosExpansion(f, 1, dists);
   std::cout << "-----------------------------------------------------------------------------------"
             << '\n';
   std::cout << "-----------------------------------------------------------------------------------"
@@ -70,7 +68,8 @@ int main() {
   std::cout << ee.getVariance(200, "adaptiveGrid") << " pce variance" << '\n';
   std::cout << ee.evalExpansion(sgpp::base::DataVector{0}, 200, "adaptiveGrid") << " pce eval"
             << '\n';
-
+  std::cout << ee.evalExpansion(sgpp::base::DataVector{mean}, 200, "adaptiveGrid")
+            << " pce eval @mean" << '\n';
   auto stuff = ee.getCoefficients();
   for (auto entry : stuff) {
     std::cout << entry << ", ";
@@ -85,6 +84,8 @@ int main() {
   surface.surplusAdaptive(200, 1);
   std::cout << surface.eval(sgpp::base::DataVector{0}) << ' ';
   std::cout << "surface eval" << '\n';
+  std::cout << surface.eval(sgpp::base::DataVector{mean}) << ' ';
+  std::cout << "surface eval @ mean" << '\n';
   std::cout << surface.getIntegral() << ' ';
   std::cout << "surface integral" << '\n';
   std::cout << surface.getMean(dists, 100) << ' ';
@@ -96,15 +97,13 @@ int main() {
             << '\n';
 
   sgpp::datadriven::PolynomialChaosExpansion ee1 =
-      sgpp::datadriven::PolynomialChaosExpansion(e, 3, dists,
-                                                 std::vector<std::pair<double, double>>{
-                                                     std::pair<double, double>{l, r},
-                                                 },
-                                                 0, 0);
-  std::cout << ee1.getMean(400, "adaptiveGrid") << " pce mean" << '\n';
-  std::cout << ee1.getVariance(400, "adaptiveGrid") << " pce variance" << '\n';
-  std::cout << ee1.evalExpansion(sgpp::base::DataVector{0}, 400, "adaptiveGrid") << " pce eval"
+      sgpp::datadriven::PolynomialChaosExpansion(e, 3, dists);
+  std::cout << ee1.getMean(600, "adaptiveGrid") << " pce mean" << '\n';
+  std::cout << ee1.getVariance(600, "adaptiveGrid") << " pce variance" << '\n';
+  std::cout << ee1.evalExpansion(sgpp::base::DataVector{0}, 600, "adaptiveGrid") << " pce eval"
             << '\n';
+  std::cout << ee1.evalExpansion(sgpp::base::DataVector{mean}, 600, "adaptiveGrid")
+            << " pce eval@mean" << '\n';
   auto stuff2 = ee1.getCoefficients();
   for (auto entry : stuff2) {
     std::cout << entry << ", ";
@@ -116,6 +115,8 @@ int main() {
   surface2.surplusAdaptive(200, 1);
   std::cout << surface2.eval(sgpp::base::DataVector{0}) << ' ';
   std::cout << "surface eval" << '\n';
+  std::cout << surface2.eval(sgpp::base::DataVector{mean}) << ' ';
+  std::cout << "surface eval @ mean" << '\n';
   std::cout << surface2.getIntegral() << ' ';
   std::cout << "surface integral" << '\n';
   std::cout << surface2.getMean(dists, 100) << ' ';
