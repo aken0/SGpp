@@ -33,19 +33,19 @@ PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const ba
       beta(base::DataVector(distributions.getSize(), 0)) {
   types = std::vector<sgpp::datadriven::distributionType>(distributions.getSize());
   for (std::vector<distributionType>::size_type i = 0; i < types.size(); ++i) {
-    auto characteristics = this->distributions.get(i)->getCharacteristics();
+    auto characteristics = distributions.get(i)->getCharacteristics();
     if (distributions.get(i)->getType() == sgpp::base::DistributionType::Normal) {
       types[i] = sgpp::datadriven::distributionType::Normal;
-      ranges[i].first = -100;
-      ranges[i].second = 100;
+      ranges[i].first = -20;
+      ranges[i].second = 20;
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::TruncNormal) {
       types[i] = sgpp::datadriven::distributionType::Normal;
-      ranges[i].first = -100;
-      ranges[i].second = 100;
+      ranges[i].first = -20;
+      ranges[i].second = 20;
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::Lognormal) {
       types[i] = sgpp::datadriven::distributionType::Normal;
-      ranges[i].first = -100;
-      ranges[i].second = 100;
+      ranges[i].first = -9;
+      ranges[i].second = 9;
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::Uniform) {
       types[i] = sgpp::datadriven::distributionType::Uniform;
       this->ranges[i].first = -(1.0);
@@ -78,7 +78,7 @@ PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const ba
                  sgpp::base::DistributionType::TruncNormal) {
         temp[i] = vec[i] * characteristics[1] + characteristics[0];
       } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Lognormal) {
-        temp[i] = vec[i];
+        temp[i] = exp((characteristics[0]) + vec[i] * (characteristics[1]));
       } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Uniform) {
         temp[i] = (vec[i] * (characteristics[1] - characteristics[0]) / 2) +
                   ((characteristics[1] + characteristics[0]) / 2);
@@ -813,7 +813,7 @@ double PolynomialChaosExpansion::evalExpansion(const base::DataVector& xi, int n
     } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::TruncNormal) {
       temp[i] = (xi[i] - characteristics[0]) / characteristics[1];
     } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Lognormal) {
-      temp[i] = xi[i];
+      temp[i] = (log(xi[i]) - (characteristics[0])) / (characteristics[1]);
     } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Uniform) {
       temp[i] = (xi[i] - ((characteristics[1] + characteristics[0]) / 2)) /
                 ((characteristics[1] - characteristics[0]) / 2);
@@ -899,5 +899,6 @@ double PolynomialChaosExpansion::getVariance(int n, std::string method) {
   temp.sqr();
   return temp.sum();
 }
-}  // namespace datadriven
+};  // namespace datadriven
 }  // namespace sgpp
+

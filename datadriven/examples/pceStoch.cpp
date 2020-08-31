@@ -15,9 +15,7 @@
 #include <utility>
 #include <vector>
 // functions to be integrated
-double e(const sgpp::base::DataVector& vec) {
-  return std::pow(vec[0] - 2, 3) /*- vec[1] * vec[1]*/;
-}
+double e(const sgpp::base::DataVector& vec) { return std::pow(vec[0] - 2, 3); }
 double f(const sgpp::base::DataVector& vec) { return 1.0; }
 double g(const sgpp::base::DataVector& vec) {
   return 1 + (std::sin(vec[0]) + std::cos(vec[1])) / std::exp(vec[1]);
@@ -33,9 +31,7 @@ class Functf : public sgpp::base::ScalarFunction {
 class Functe : public sgpp::base::ScalarFunction {
  public:
   explicit Functe() : sgpp::base::ScalarFunction(1) {}
-  double eval(const sgpp::base::DataVector& vec) {
-    return std::pow(vec[0] - 2, 3) /*- vec[1] * vec[1]*/;
-  }
+  double eval(const sgpp::base::DataVector& vec) { return std::pow(vec[0] - 2, 3); }
   virtual void clone(std::unique_ptr<sgpp::base::ScalarFunction>& clone) const {
     clone = std::unique_ptr<sgpp::base::ScalarFunction>(new Functe(*this));
   }
@@ -49,14 +45,17 @@ int main() {
   std::cout << std::fixed;
   std::cout << std::setprecision(9);
   sgpp::base::DistributionsVector dists;
-  double mean = 4;
-  double sigma = .2;
-  double l = 0;
-  double r = 100;
-  auto dist1 = std::make_shared<sgpp::base::DistributionTruncGamma>(1, 100);
-  // auto dist2 = std::make_shared<sgpp::base::DistributionTruncNormal>(0, 1, -30, 30);
+  int dim = 1;
+  double mean = -1;
+  double sigma = 1;
+  // double l = exp(mean - 9 * sigma);
+  // double r = exp(mean + 9 * sigma);
+  double l = -1;
+  double r = 1;
+  auto dist1 = std::make_shared<sgpp::base::DistributionUniform>(mean, sigma);
+  // auto dist2 = std::make_shared<sgpp::base::DistributionUniform>(l, r);
+  // auto dist3 = std::make_shared<sgpp::base::DistributionUniform>(l, r);
   dists.push_back(dist1);
-  // dists.push_back(dist2);
   sgpp::datadriven::PolynomialChaosExpansion ee =
       sgpp::datadriven::PolynomialChaosExpansion(f, 1, dists);
   std::cout << "-----------------------------------------------------------------------------------"
@@ -64,11 +63,11 @@ int main() {
   std::cout << "-----------------------------------------------------------------------------------"
             << '\n';
 
-  std::cout << ee.getMean(200, "adaptiveGrid") << " pce mean" << '\n';
-  std::cout << ee.getVariance(200, "adaptiveGrid") << " pce variance" << '\n';
-  std::cout << ee.evalExpansion(sgpp::base::DataVector{0}, 200, "adaptiveGrid") << " pce eval"
+  std::cout << ee.getMean(600, "adaptiveGrid") << " pce mean" << '\n';
+  std::cout << ee.getVariance(400, "adaptiveGrid") << " pce variance" << '\n';
+  std::cout << ee.evalExpansion(sgpp::base::DataVector(dim, 0), 200, "adaptiveGrid") << " pce eval"
             << '\n';
-  std::cout << ee.evalExpansion(sgpp::base::DataVector{mean}, 200, "adaptiveGrid")
+  std::cout << ee.evalExpansion(sgpp::base::DataVector(dim, mean), 200, "adaptiveGrid")
             << " pce eval @mean" << '\n';
   auto stuff = ee.getCoefficients();
   for (auto entry : stuff) {
@@ -78,13 +77,13 @@ int main() {
 
   auto f1 = std::make_shared<Functf>();
   auto e1 = std::make_shared<Functe>();
-  sgpp::optimization::SplineResponseSurface surface(f1, sgpp::base::DataVector{l},
-                                                    sgpp::base::DataVector{r},
+  sgpp::optimization::SplineResponseSurface surface(f1, sgpp::base::DataVector(dim, l),
+                                                    sgpp::base::DataVector(dim, r),
                                                     sgpp::base::GridType::NakBsplineBoundary);
   surface.surplusAdaptive(200, 1);
-  std::cout << surface.eval(sgpp::base::DataVector{0}) << ' ';
+  std::cout << surface.eval(sgpp::base::DataVector(dim, 0)) << ' ';
   std::cout << "surface eval" << '\n';
-  std::cout << surface.eval(sgpp::base::DataVector{mean}) << ' ';
+  std::cout << surface.eval(sgpp::base::DataVector(dim, mean)) << ' ';
   std::cout << "surface eval @ mean" << '\n';
   std::cout << surface.getIntegral() << ' ';
   std::cout << "surface integral" << '\n';
@@ -97,25 +96,25 @@ int main() {
             << '\n';
 
   sgpp::datadriven::PolynomialChaosExpansion ee1 =
-      sgpp::datadriven::PolynomialChaosExpansion(e, 3, dists);
+      sgpp::datadriven::PolynomialChaosExpansion(e, 5, dists);
   std::cout << ee1.getMean(600, "adaptiveGrid") << " pce mean" << '\n';
   std::cout << ee1.getVariance(600, "adaptiveGrid") << " pce variance" << '\n';
-  std::cout << ee1.evalExpansion(sgpp::base::DataVector{0}, 600, "adaptiveGrid") << " pce eval"
+  std::cout << ee1.evalExpansion(sgpp::base::DataVector(dim, 0), 600, "adaptiveGrid") << " pce eval"
             << '\n';
-  std::cout << ee1.evalExpansion(sgpp::base::DataVector{mean}, 600, "adaptiveGrid")
+  std::cout << ee1.evalExpansion(sgpp::base::DataVector(dim, mean), 600, "adaptiveGrid")
             << " pce eval@mean" << '\n';
   auto stuff2 = ee1.getCoefficients();
   for (auto entry : stuff2) {
     std::cout << entry << ", ";
   }
   std::cout << '\n';
-  sgpp::optimization::SplineResponseSurface surface2(e1, sgpp::base::DataVector{l},
-                                                     sgpp::base::DataVector{r},
+  sgpp::optimization::SplineResponseSurface surface2(e1, sgpp::base::DataVector(dim, l),
+                                                     sgpp::base::DataVector(dim, r),
                                                      sgpp::base::GridType::NakBsplineBoundary);
   surface2.surplusAdaptive(200, 1);
-  std::cout << surface2.eval(sgpp::base::DataVector{0}) << ' ';
+  std::cout << surface2.eval(sgpp::base::DataVector(dim, 0)) << ' ';
   std::cout << "surface eval" << '\n';
-  std::cout << surface2.eval(sgpp::base::DataVector{mean}) << ' ';
+  std::cout << surface2.eval(sgpp::base::DataVector(dim, mean)) << ' ';
   std::cout << "surface eval @ mean" << '\n';
   std::cout << surface2.getIntegral() << ' ';
   std::cout << "surface integral" << '\n';

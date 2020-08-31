@@ -24,7 +24,7 @@ class DistributionBeta : public Distribution {
   /**
    * Constructor
    */
-  explicit DistributionBeta(double alpha = 0, double beta = 0)
+  explicit DistributionBeta(double alpha, double beta)
       : Distribution(), alpha(alpha), beta(beta), dist1(alpha + 1), dist2(beta + 1) {}
 
   /**
@@ -43,8 +43,8 @@ class DistributionBeta : public Distribution {
 
   double eval(double x) {
     return (std::pow(1 - x, alpha) * std::pow(1 + x, beta)) /
-           (std::pow(2, alpha + beta + 1) * (std::tgamma(alpha) * std::tgamma(beta)) /
-            std::tgamma(alpha + beta));
+           (std::pow(2, alpha + beta + 1) *
+            ((std::tgamma(alpha) * std::tgamma(beta)) / std::tgamma(alpha + beta)));
   }
 
   sgpp::base::DataVector getBounds() {
