@@ -36,16 +36,16 @@ PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const ba
     auto characteristics = distributions.get(i)->getCharacteristics();
     if (distributions.get(i)->getType() == sgpp::base::DistributionType::Normal) {
       types[i] = sgpp::datadriven::distributionType::Normal;
-      ranges[i].first = -20;
-      ranges[i].second = 20;
+      ranges[i].first = -10;
+      ranges[i].second = 10;
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::TruncNormal) {
       types[i] = sgpp::datadriven::distributionType::Normal;
-      ranges[i].first = -20;
-      ranges[i].second = 20;
+      ranges[i].first = -10;
+      ranges[i].second = 10;
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::Lognormal) {
       types[i] = sgpp::datadriven::distributionType::Normal;
-      ranges[i].first = -9;
-      ranges[i].second = 9;
+      ranges[i].first = -10;
+      ranges[i].second = 10;
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::Uniform) {
       types[i] = sgpp::datadriven::distributionType::Uniform;
       this->ranges[i].first = -(1.0);
@@ -321,7 +321,7 @@ void PolynomialChaosExpansion::printAdaptiveGrid(
      * Refining the point means, that all children of this point (if not already present) are
      * added to the grid. Also all missing parents are added (recursively).
      */
-    base::SurplusRefinementFunctor functor(coeffs, 10);
+    base::SurplusRefinementFunctor functor(coeffs, 5);
     grid->getGenerator().refine(functor, &addedPoints);
 
     coeffs.resize(gridStorage.getSize());
@@ -488,7 +488,7 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
      * Refining the point means, that all children of this point (if not already present) are
      * added to the grid. Also all missing parents are added (recursively).
      */
-    base::SurplusRefinementFunctor functor(coeffs, 10);
+    base::SurplusRefinementFunctor functor(coeffs, 5);
     grid->getGenerator().refine(functor, &addedPoints);
 
     coeffs.resize(gridStorage.getSize());
@@ -662,7 +662,7 @@ double PolynomialChaosExpansion::adaptiveQuadratureL2(
      * Refining the point means, that all children of this point (if not already present) are
      * added to the grid. Also all missing parents are added (recursively).
      */
-    base::SurplusRefinementFunctor functor(coeffs, 10);
+    base::SurplusRefinementFunctor functor(coeffs, 5);
     grid->getGenerator().refine(functor, &addedPoints);
 
     coeffs.resize(gridStorage.getSize());
@@ -838,22 +838,33 @@ double PolynomialChaosExpansion::evalExpansion(const base::DataVector& xi, int n
   return sum;
 }
 
-// randomly sample the response and compare to the pce eval
 double PolynomialChaosExpansion::getL2Error(int n, std::string method) {
-  int dim = static_cast<int>(types.size());
-  std::vector<std::uniform_real_distribution<double>> dists(dim);
-  std::random_device dev;
-  std::mt19937_64 mersenne{dev()};
-  for (int i = 0; i < dim; ++i) {
-    dists[i] = std::uniform_real_distribution<double>{ranges[i].first, ranges[i].second};
-  }
-  auto gen = [this, &dists, &mersenne, &n, &method]() {
-    base::DataVector randvec(dists.size());
-    for (std::vector<std::uniform_real_distribution<double>>::size_type i = 0; i < dists.size();
-         ++i) {
-      randvec[i] = dists[i](mersenne);
+  auto gen = [this, &n, &method]() {
+    base::DataVector randvec = distributions.sample();
+    base::DataVector transvec(randvec.getSize());
+    for (std::vector<distributionType>::size_type i = 0; i < types.size(); ++i) {
+      auto characteristics = this->distributions.get(i)->getCharacteristics();
+      if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Normal) {
+        transvec[i] = (randvec[i] - characteristics[0]) / characteristics[1];
+      } else if (this->distributions.get(i)->getType() ==
+                 sgpp::base::DistributionType::TruncNormal) {
+        transvec[i] = (randvec[i] - characteristics[0]) / characteristics[1];
+      } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Lognormal) {
+        transvec[i] = (log(randvec[i]) - (characteristics[0])) / (characteristics[1]);
+      } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Uniform) {
+        transvec[i] = (randvec[i] - ((characteristics[1] + characteristics[0]) / 2)) /
+                      ((characteristics[1] - characteristics[0]) / 2);
+      } else if (this->distributions.get(i)->getType() ==
+                 sgpp::base::DistributionType::TruncGamma) {
+        transvec[i] = randvec[i];
+      } else if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Beta) {
+        transvec[i] = randvec[i];
+      } else if (this->distributions.get(i)->getType() ==
+                 sgpp::base::DistributionType::TruncExponential) {
+        transvec[i] = randvec[i];
+      }
     }
-    return std::pow(func(randvec) - (evalExpansion(randvec, n, method)), 2);
+    return std::pow(func(transvec) - (evalExpansion(randvec, n, method)), 2);
   };
   size_t num = 100000;
   base::DataVector results(num);

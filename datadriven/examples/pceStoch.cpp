@@ -15,23 +15,25 @@
 #include <utility>
 #include <vector>
 // functions to be integrated
-double e(const sgpp::base::DataVector& vec) { return std::pow(vec[0] - 2, 3); }
+double e(const sgpp::base::DataVector& vec) {
+  return std::pow(vec[0], 3) + vec[1] * vec[1] + vec[2];
+}
 double f(const sgpp::base::DataVector& vec) { return 1.0; }
 double g(const sgpp::base::DataVector& vec) {
   return 1 + (std::sin(vec[0]) + std::cos(vec[1])) / std::exp(vec[1]);
 }
 class Functf : public sgpp::base::ScalarFunction {
  public:
-  explicit Functf() : sgpp::base::ScalarFunction(1) {}
-  double eval(const sgpp::base::DataVector& x) { return 1.0; }
+  explicit Functf(int dim) : sgpp::base::ScalarFunction(dim) {}
+  double eval(const sgpp::base::DataVector& x) { return f(x); }
   virtual void clone(std::unique_ptr<sgpp::base::ScalarFunction>& clone) const {
     clone = std::unique_ptr<sgpp::base::ScalarFunction>(new Functf(*this));
   }
 };
 class Functe : public sgpp::base::ScalarFunction {
  public:
-  explicit Functe() : sgpp::base::ScalarFunction(1) {}
-  double eval(const sgpp::base::DataVector& vec) { return std::pow(vec[0] - 2, 3); }
+  explicit Functe(int dim) : sgpp::base::ScalarFunction(dim) {}
+  double eval(const sgpp::base::DataVector& vec) { return e(vec); }
   virtual void clone(std::unique_ptr<sgpp::base::ScalarFunction>& clone) const {
     clone = std::unique_ptr<sgpp::base::ScalarFunction>(new Functe(*this));
   }
@@ -45,25 +47,28 @@ int main() {
   std::cout << std::fixed;
   std::cout << std::setprecision(9);
   sgpp::base::DistributionsVector dists;
-  int dim = 1;
-  double mean = -1;
+  int dim = 3;
+  double mean = 0;
   double sigma = 1;
-  // double l = exp(mean - 9 * sigma);
-  // double r = exp(mean + 9 * sigma);
-  double l = -1;
-  double r = 1;
-  auto dist1 = std::make_shared<sgpp::base::DistributionUniform>(mean, sigma);
+  double l = (mean - 9 * sigma);
+  double r = (mean + 9 * sigma);
+  // double l = -1;
+  // double r = 1;
+  auto dist1 = std::make_shared<sgpp::base::DistributionNormal>(mean, sigma);
+  auto dist2 = std::make_shared<sgpp::base::DistributionNormal>(mean, sigma);
+  auto dist3 = std::make_shared<sgpp::base::DistributionNormal>(mean, sigma);
   // auto dist2 = std::make_shared<sgpp::base::DistributionUniform>(l, r);
-  // auto dist3 = std::make_shared<sgpp::base::DistributionUniform>(l, r);
   dists.push_back(dist1);
+  dists.push_back(dist1);
+  dists.push_back(dist3);
   sgpp::datadriven::PolynomialChaosExpansion ee =
-      sgpp::datadriven::PolynomialChaosExpansion(f, 1, dists);
+      sgpp::datadriven::PolynomialChaosExpansion(f, 3, dists);
   std::cout << "-----------------------------------------------------------------------------------"
             << '\n';
   std::cout << "-----------------------------------------------------------------------------------"
             << '\n';
 
-  std::cout << ee.getMean(600, "adaptiveGrid") << " pce mean" << '\n';
+  std::cout << ee.getMean(300, "adaptiveGrid") << " pce mean" << '\n';
   std::cout << ee.getVariance(400, "adaptiveGrid") << " pce variance" << '\n';
   std::cout << ee.evalExpansion(sgpp::base::DataVector(dim, 0), 200, "adaptiveGrid") << " pce eval"
             << '\n';
@@ -75,8 +80,8 @@ int main() {
   }
   std::cout << '\n';
 
-  auto f1 = std::make_shared<Functf>();
-  auto e1 = std::make_shared<Functe>();
+  auto f1 = std::make_shared<Functf>(dim);
+  auto e1 = std::make_shared<Functe>(dim);
   sgpp::optimization::SplineResponseSurface surface(f1, sgpp::base::DataVector(dim, l),
                                                     sgpp::base::DataVector(dim, r),
                                                     sgpp::base::GridType::NakBsplineBoundary);
@@ -97,7 +102,7 @@ int main() {
 
   sgpp::datadriven::PolynomialChaosExpansion ee1 =
       sgpp::datadriven::PolynomialChaosExpansion(e, 5, dists);
-  std::cout << ee1.getMean(600, "adaptiveGrid") << " pce mean" << '\n';
+  std::cout << ee1.getMean(400, "adaptiveGrid") << " pce mean" << '\n';
   std::cout << ee1.getVariance(600, "adaptiveGrid") << " pce variance" << '\n';
   std::cout << ee1.evalExpansion(sgpp::base::DataVector(dim, 0), 600, "adaptiveGrid") << " pce eval"
             << '\n';
