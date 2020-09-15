@@ -36,16 +36,16 @@ PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const ba
     auto characteristics = distributions.get(i)->getCharacteristics();
     if (distributions.get(i)->getType() == sgpp::base::DistributionType::Normal) {
       types[i] = sgpp::datadriven::distributionType::Normal;
-      ranges[i].first = -10;
-      ranges[i].second = 10;
+      ranges[i].first = -9;
+      ranges[i].second = 9;
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::TruncNormal) {
       types[i] = sgpp::datadriven::distributionType::Normal;
-      ranges[i].first = -10;
-      ranges[i].second = 10;
+      ranges[i].first = -9;
+      ranges[i].second = 9;
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::Lognormal) {
       types[i] = sgpp::datadriven::distributionType::Normal;
-      ranges[i].first = -10;
-      ranges[i].second = 10;
+      ranges[i].first = -9;
+      ranges[i].second = 9;
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::Uniform) {
       types[i] = sgpp::datadriven::distributionType::Uniform;
       this->ranges[i].first = -(1.0);
@@ -253,7 +253,7 @@ double PolynomialChaosExpansion::monteCarloQuad(
 }
 
 void PolynomialChaosExpansion::printGrid(int dim, int n, std::string tFilename) {
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   int i = 0;
   while (gridStorage.getSize() < n) {
@@ -261,7 +261,6 @@ void PolynomialChaosExpansion::printGrid(int dim, int n, std::string tFilename) 
     grid->getGenerator().regular(i);
     ++i;
   }
-
   std::ofstream fileout;
   fileout.open(tFilename.c_str());
   for (size_t i = 0; i < grid->getSize(); ++i) {
@@ -287,8 +286,7 @@ void PolynomialChaosExpansion::printAdaptiveGrid(
     }
     return funct(temp);
   };
-
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   grid->getGenerator().regular(1);
 
@@ -390,7 +388,7 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
     }
     return funct(temp);
   };
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   int i = 0;
   while (gridStorage.getSize() < n) {
@@ -432,7 +430,7 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
 
     // solve linear system
     if (!sleSolver.solve(hierSLE, evals, coeffs)) {
-      return 1;
+      // return 1;
     }
     // overwrite evals
     evals = coeffs;
@@ -454,13 +452,13 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
   auto numfunc = [&funct](const base::DataVector& input,
                           const std::vector<std::pair<double, double>>& ranges) {
     base::DataVector temp(input.size());
-    for (base::DataVector::size_type i = 0; i < input.size(); ++i) {
+    for (base::DataVector::size_type i = 0; i < ranges.size(); ++i) {
       temp[i] = (input[i]) * (ranges[i].second - ranges[i].first) + ranges[i].first;
     }
     return funct(temp);
   };
 
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   grid->getGenerator().regular(1);
 
@@ -528,7 +526,7 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
 
       // solve linear system
       if (!sleSolver.solve(hierSLE, funEvals, coeffs)) {
-        return 1;
+        // return 1;
       }
     }
     addedPoints.clear();
@@ -553,7 +551,7 @@ double PolynomialChaosExpansion::sparseGridQuadratureL2(
     }
     return funct(temp);
   };
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
 
   int i = 0;
@@ -598,7 +596,7 @@ double PolynomialChaosExpansion::sparseGridQuadratureL2(
 
     // solve linear system
     if (!sleSolver.solve(hierSLE, evals, coeffs)) {
-      return 1;
+      // return 1;
     }
     evals = coeffs;
   }
@@ -635,7 +633,7 @@ double PolynomialChaosExpansion::adaptiveQuadratureL2(
     return funct(temp);
   };
 
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   grid->getGenerator().regular(1);
 
@@ -702,7 +700,7 @@ double PolynomialChaosExpansion::adaptiveQuadratureL2(
 
       // solve linear system
       if (!sleSolver.solve(hierSLE, funEvals, coeffs)) {
-        return 1;
+        // return 1;
       }
     }
     addedPoints.clear();
@@ -766,16 +764,19 @@ base::DataVector PolynomialChaosExpansion::calculateCoefficients(int n, std::str
   for (std::vector<std::vector<int>>::size_type j = 0; j < index.size(); ++j) {
     auto numfunc = [this, &index, &j](const base::DataVector& vec) {
       double prd = 1;
+      double weightprd = 1;
       for (base::DataVector::size_type i = 0; i < vec.getSize(); ++i) {
-        prd *= evals[static_cast<int>(types[i])](index[j][i], vec[i], i) *
-               weights[static_cast<int>(types[i])](vec[i], i);
+        prd *= evals[static_cast<int>(types[i])](index[j][i], vec[i], i);
       }
-      return prd;
+      for (base::DataVector::size_type i = 0; i < vec.getSize(); ++i) {
+        weightprd *= weights[static_cast<int>(types[i])](vec[i], i);
+      }
+      return prd * weightprd;
     };
     auto intfunc = [this, &numfunc](const base::DataVector& vec) {
       return numfunc(vec) * func(vec);
     };
-    double num;
+    double num = 1;
     if (method == "MC") {
       num = monteCarloQuad(intfunc, n);
     } else if (method == "sparseGrid") {
@@ -805,7 +806,7 @@ double PolynomialChaosExpansion::evalExpansion(const base::DataVector& xi, int n
   if (coefficients.empty()) {
     calculateCoefficients(n, method);
   }
-  base::DataVector temp(xi.size());
+  base::DataVector temp(xi);
   for (std::vector<distributionType>::size_type i = 0; i < types.size(); ++i) {
     auto characteristics = this->distributions.get(i)->getCharacteristics();
     if (this->distributions.get(i)->getType() == sgpp::base::DistributionType::Normal) {
@@ -831,7 +832,7 @@ double PolynomialChaosExpansion::evalExpansion(const base::DataVector& xi, int n
   for (std::vector<std::vector<int>>::size_type j = 0; j < index.size(); ++j) {
     double prod = 1.0;
     for (std::vector<int>::size_type i = 0; i < index[j].size(); ++i) {
-      prod *= evals[static_cast<int>(types[i])](index[j][i], temp[i], i);
+      prod *= evals[static_cast<int>(types[i])](index[j][i], temp[i], i);  // maybe use temp
     }
     sum += prod * coefficients[j];
   }
@@ -864,6 +865,8 @@ double PolynomialChaosExpansion::getL2Error(int n, std::string method) {
         transvec[i] = randvec[i];
       }
     }
+    // std::cout << "func: " << func(transvec) << ", expan: " << evalExpansion(transvec, n, method)
+    // << transvec << '\n';
     return std::pow(func(transvec) - (evalExpansion(randvec, n, method)), 2);
   };
   size_t num = 100000;
@@ -877,7 +880,7 @@ double PolynomialChaosExpansion::getMean(int n, std::string method) {
   }
   return coefficients[0];
 }
-// TODO fix beta/jacobi
+// TODO fix jacobi
 double PolynomialChaosExpansion::getVariance(int n, std::string method) {
   if (coefficients.empty()) {
     calculateCoefficients(n, method);

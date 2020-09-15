@@ -19,8 +19,8 @@ double g(const sgpp::base::DataVector& vec) {
 }
 int main() {
   sgpp::base::DistributionsVector dists;
-  auto dist1 = std::make_shared<sgpp::base::DistributionUniform>(-1, 1);
-  auto dist2 = std::make_shared<sgpp::base::DistributionUniform>(-1, 1);
+  auto dist1 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+  auto dist2 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
   dists.push_back(dist1);
   dists.push_back(dist2);
   sgpp::datadriven::PolynomialChaosExpansion ee =
@@ -36,90 +36,90 @@ int main() {
   int dim = 2;
   ee.printGrid(dim, 1, "plot_pce/" + path + "(base-level5).txt");
   std::cout << "base" << '\n';
-  for (int i = 20; i <= points; i *= 1.5) {
+  for (int i = 50; i <= points; i *= 1.5) {
     of << i << ',';
   }
   of << '\n';
-  for (int i = 20; i <= points; i *= 1.5) {
+  for (int i = 50; i <= points; i *= 1.5) {
     auto re = ee.adaptiveQuadrature(e, dim, i);
     of << re << ',';
   }
-  // ee.printAdaptiveGrid(e, dim, 4000, "plot_pce/" + path + "(e-level5).txt");
   std::cout << "e" << '\n';
   of << '\n';
-  for (int i = 20; i <= points; i *= 1.5) {
+  for (int i = 50; i <= points; i *= 1.5) {
     auto re = ee.adaptiveQuadrature(f, dim, i);
     of << re << ',';
   }
 
-  ee.printGrid(dim, 2000, "plot_pce/" + path + "(e-level5).txt");
-  ee.printAdaptiveGrid(f, dim, 2000, "plot_pce/" + path + "(f-level5).txt");
+  ee.printAdaptiveGrid(e, dim, 200, "plot_pce/" + path + "(e-level5).txt");
+  // ee.printGrid(dim, 200, "plot_pce/" + path + "(e-level5).txt");
+  ee.printAdaptiveGrid(f, dim, 200, "plot_pce/" + path + "(f-level5).txt");
   std::cout << "f" << '\n';
   of << '\n';
-  for (int i = 20; i <= points; i *= 1.5) {
+  for (int i = 50; i <= points; i *= 1.5) {
     auto re = ee.adaptiveQuadrature(g, dim, i);
     of << re << ',';
   }
-  ee.printAdaptiveGrid(g, dim, 4000, "plot_pce/" + path + "(g-level5).txt");
+  ee.printAdaptiveGrid(g, dim, 200, "plot_pce/" + path + "(g-level5).txt");
   std::cout << "g" << '\n';
   of << '\n';
-  for (int i = 20; i <= points; i *= 1.5) {
+  for (int i = 50; i <= points; i *= 1.5) {
     auto re = ee.adaptiveQuadratureL2(e, dim, i);
     of << re << ',';
   }
   of << '\n';
   std::cout << "e" << '\n';
-  for (int i = 20; i <= points; i *= 1.5) {
+  for (int i = 50; i <= points; i *= 1.5) {
     auto re = ee.adaptiveQuadratureL2(f, dim, i);
     of << re << ',';
   }
   of << '\n';
   std::cout << "f" << '\n';
-  for (int i = 20; i <= points; i *= 1.5) {
+  for (int i = 50; i <= points; i *= 1.5) {
     auto re = ee.adaptiveQuadratureL2(g, dim, i);
     of << re << ',';
   }
   // sparseGridQuadrature
   of << '\n';
   std::cout << "g" << '\n';
-  for (int i = 20; i <= points; i *= 1.5) {
+  for (int i = 50; i <= points; i *= 1.5) {
     auto re = ee.sparseGridQuadrature(e, dim, i);
     of << re << ',';
   }
   std::cout << "e2" << '\n';
   of << '\n';
-  for (int i = 20; i <= points; i *= 1.5) {
+  for (int i = 50; i <= points; i *= 1.5) {
     auto re = ee.sparseGridQuadrature(f, dim, i);
     of << re << ',';
   }
   std::cout << "f2" << '\n';
   of << '\n';
-  for (int i = 20; i <= points; i *= 1.5) {
+  for (int i = 50; i <= points; i *= 1.5) {
     auto re = ee.sparseGridQuadrature(g, dim, i);
     of << re << ',';
   }
   std::cout << "g2" << '\n';
   of << '\n';
-  for (int i = 20; i <= points; i *= 1.5) {
+  for (int i = 50; i <= points; i *= 1.5) {
     auto re = ee.sparseGridQuadratureL2(e, dim, i);
     of << re << ',';
   }
   of << '\n';
   std::cout << "e2" << '\n';
-  for (int i = 20; i <= points; i *= 1.5) {
+  for (int i = 50; i <= points; i *= 1.5) {
     auto re = ee.sparseGridQuadratureL2(f, dim, i);
     of << re << ',';
   }
   of << '\n';
   std::cout << "f2" << '\n';
-  for (int i = 20; i <= points; i *= 1.5) {
+  for (int i = 50; i <= points; i *= 1.5) {
     auto re = ee.sparseGridQuadratureL2(g, dim, i);
     of << re << ',';
   }
   // Monte-Carlo
   of << '\n';
   std::cout << "g2" << '\n';
-  for (int i = 20; i <= points; i *= 1.5) {
+  for (int i = 50; i <= points; i *= 1.5) {
     sgpp::base::DataVector result(500);
     for (int j = 0; j < 500; ++j) {
       result[j] = ee.monteCarloQuad(e, i);
@@ -129,7 +129,7 @@ int main() {
   }
   of << '\n';
   std::cout << "emc" << '\n';
-  for (int i = 20; i <= points; i *= 1.5) {
+  for (int i = 50; i <= points; i *= 1.5) {
     sgpp::base::DataVector result(500);
     for (int j = 0; j < 500; ++j) {
       result[j] = ee.monteCarloQuad(f, i);
@@ -139,7 +139,7 @@ int main() {
   }
   of << '\n';
   std::cout << "fmc" << '\n';
-  for (int i = 20; i <= points; i *= 1.5) {
+  for (int i = 50; i <= points; i *= 1.5) {
     sgpp::base::DataVector result(500);
     for (int j = 0; j < 500; ++j) {
       result[j] = ee.monteCarloQuad(g, i);
@@ -153,7 +153,7 @@ int main() {
   for (auto method : {"sparseGrid", "adaptiveGrid"}) {
     for (auto function : {e, f, g}) {
       for (auto order : {1, 3, 10}) {
-        for (int i = 20; i <= points; i *= 1.5) {
+        for (int i = 50; i <= points; i *= 1.5) {
           auto ee = sgpp::datadriven::PolynomialChaosExpansion(function, order, dists);
           ee.calculateCoefficients(i, method);
           auto re = ee.getL2Error(i, method);
@@ -167,7 +167,7 @@ int main() {
   }
   of << '\n';
   std::cout << "done" << '\n';
-  for (int i = 20; i <= points; i *= 1.5) {
+  for (int i = 50; i <= points; i *= 1.5) {
     std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearBoundaryGrid(dim));
     sgpp::base::GridStorage& gridStorage = grid->getStorage();
     int j = 1;

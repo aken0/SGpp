@@ -38,32 +38,33 @@ int main() {
   std::cout << std::setprecision(9);
   sgpp::base::DistributionsVector dists;
   int dim = 3;
-  sgpp::base::DataVector lb{1, -4, -4};
-  sgpp::base::DataVector ub{2, 14, 14};
-  auto dist1 = std::make_shared<sgpp::base::DistributionUniform>(1, 2);
-  auto dist2 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
-  auto dist3 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+  sgpp::base::DataVector lb{exp(.5), -160, -40};
+  sgpp::base::DataVector ub{exp(9.5), 560, 140};
+  auto dist1 = std::make_shared<sgpp::base::DistributionLogNormal>(5, .5);
+  auto dist2 = std::make_shared<sgpp::base::DistributionNormal>(200, 40);
+  auto dist3 = std::make_shared<sgpp::base::DistributionNormal>(50, 10);
   dists.push_back(dist1);
   dists.push_back(dist2);
   dists.push_back(dist3);
   auto e1 = std::make_shared<Functe>();
+  auto evalVec = dists.sample();
   std::cout << "-----------------------------------------------------------------------------------"
             << '\n';
   sgpp::datadriven::PolynomialChaosExpansion ee1 =
-      sgpp::datadriven::PolynomialChaosExpansion(e, 3, dists);
-  std::cout << ee1.getMean(400, "adaptiveGrid") << " pce mean" << '\n';
+      sgpp::datadriven::PolynomialChaosExpansion(e, 2, dists);
+  std::cout << ee1.getL2Error(2000, "adaptiveGrid") << " pce L2" << '\n';
+  std::cout << ee1.getMean(1600, "adaptiveGrid") << " pce mean" << '\n';
   std::cout << ee1.getVariance(200, "adaptiveGrid") << " pce variance" << '\n';
-  std::cout << ee1.evalExpansion(sgpp::base::DataVector(dim, 1), 200, "adaptiveGrid") << " pce eval"
-            << '\n';
+  std::cout << ee1.evalExpansion(evalVec, 200, "adaptiveGrid") << " pce eval" << '\n';
   auto stuff2 = ee1.getCoefficients();
   for (auto entry : stuff2) {
     std::cout << entry << ", ";
   }
   std::cout << '\n';
   sgpp::optimization::SplineResponseSurface surface2(e1, lb, ub,
-                                                     sgpp::base::GridType::NakBsplineBoundary);
-  surface2.surplusAdaptive(20, 1);
-  std::cout << surface2.eval(sgpp::base::DataVector(dim, 1)) << ' ';
+                                                     sgpp::base::GridType::NakBsplineBoundary, 3);
+  surface2.surplusAdaptive(1600, 1);
+  std::cout << surface2.eval(evalVec) << ' ';
   std::cout << "surface eval" << '\n';
   std::cout << surface2.getIntegral() << ' ';
   std::cout << "surface integral" << '\n';
