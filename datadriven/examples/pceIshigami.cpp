@@ -52,8 +52,8 @@ int main() {
   std::cout << "-----------------------------------------------------------------------------------"
             << '\n';
   sgpp::datadriven::PolynomialChaosExpansion ee1 =
-      sgpp::datadriven::PolynomialChaosExpansion(e, 4, dists);
-  std::cout << ee1.getL2Error(3000, "adaptiveGrid") << " pce L2" << '\n';
+      sgpp::datadriven::PolynomialChaosExpansion(e, 1, dists);
+  std::cout << ee1.getL2Error(1000, "adaptiveWeighted") << " pce L2" << '\n';
   std::cout << ee1.getMean(1600, "adaptiveGrid") << " pce mean" << '\n';
   std::cout << ee1.getVariance(200, "adaptiveGrid") << " pce variance" << '\n';
   std::cout << ee1.evalExpansion(evalVec, 200, "adaptiveGrid") << " pce eval" << '\n';

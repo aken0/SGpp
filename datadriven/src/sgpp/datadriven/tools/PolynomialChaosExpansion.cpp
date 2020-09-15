@@ -558,6 +558,103 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
   return res * prod;
 }
 
+double PolynomialChaosExpansion::adaptiveQuadratureWeighted(
+    const std::function<double(const base::DataVector&)>& funct, int dim, size_t n,
+    size_t quadOrder) {
+  auto numfunc = [&funct](const base::DataVector& input,
+                          const std::vector<std::pair<double, double>>& ranges) {
+    base::DataVector temp(input.size());
+    for (base::DataVector::size_type i = 0; i < ranges.size(); ++i) {
+      temp[i] = (input[i]) * (ranges[i].second - ranges[i].first) + ranges[i].first;
+    }
+    return funct(temp);
+  };
+
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3, 3));
+  sgpp::base::GridStorage& gridStorage = grid->getStorage();
+  grid->getGenerator().regular(1);
+
+  base::DataVector coeffs(gridStorage.getSize());
+  /**
+   * Create a vector for storing (possibly expensive) function evaluations at
+   * each gridpoint.
+   */
+  base::DataVector funEvals(gridStorage.getSize());
+  for (size_t i = 0; i < gridStorage.getSize(); i++) {
+    base::GridPoint& gp = gridStorage.getPoint(i);
+    base::DataVector vec(dim);
+    for (int j = 0; j < dim; ++j) {
+      vec[j] = gp.getStandardCoordinate(j);
+    }
+    funEvals[i] = numfunc(vec, ranges);
+  }
+  std::vector<size_t> addedPoints;
+  /**
+   * Refine adaptively until number of points is reached.
+   */
+  while (gridStorage.getSize() < n) {
+    /**
+     * The SurplusRefinementFunctor chooses the grid point with the highest absolute surplus.
+     * Refining the point means, that all children of this point (if not already present) are
+     * added to the grid. Also all missing parents are added (recursively).
+     */
+    base::SurplusRefinementFunctor functor(coeffs, 5);
+    grid->getGenerator().refine(functor, &addedPoints);
+
+    coeffs.resize(gridStorage.getSize());
+    funEvals.resize(gridStorage.getSize());
+
+    /**
+     * Evaluate the function f at the newly created gridpoints and set the
+     * corresponding entries in the funEval vector with these values.
+     */
+    for (size_t i = 0; i < addedPoints.size(); i++) {
+      size_t seq = addedPoints[i];
+      base::GridPoint& gp = gridStorage.getPoint(seq);
+      base::DataVector vec(dim);
+      for (int j = 0; j < dim; ++j) {
+        vec[j] = gp.getStandardCoordinate(j);
+      }
+      funEvals[seq] = numfunc(vec, ranges);
+    }
+
+    coeffs.copyFrom(funEvals);
+
+    // try hierarchisation
+    bool succHierarch = false;
+
+    try {
+      std::unique_ptr<base::OperationHierarchisation>(
+          sgpp::op_factory::createOperationHierarchisation(*grid))
+          ->doHierarchisation(coeffs);
+      succHierarch = true;
+    } catch (...) {
+      succHierarch = false;
+    }
+
+    if (!succHierarch) {
+      sgpp::base::HierarchisationSLE hierSLE(*grid);
+      sgpp::base::sle_solver::Eigen sleSolver;
+
+      // solve linear system
+      if (!sleSolver.solve(hierSLE, funEvals, coeffs)) {
+        // return 1;
+      }
+    }
+    addedPoints.clear();
+  }
+  double prod = 1;
+  for (auto pair : ranges) {
+    prod *= (pair.second - pair.first);
+  }
+  std::unique_ptr<sgpp::base::OperationWeightedQuadrature> opWQ(
+      sgpp::op_factory::createOperationWeightedQuadrature(*grid, quadOrder));
+  sgpp::base::OperationWeightedQuadrature* opWQuad =
+      sgpp::op_factory::createOperationWeightedQuadrature(*grid, quadOrder);
+  double res = opWQ->doWeightedQuadrature(coeffs, standardvec);
+  std::cout << "res: " << res << " prod: " << prod << '\n';
+  return res /** prod*/;
+}
 double PolynomialChaosExpansion::sparseGridQuadratureL2(
     const std::function<double(const base::DataVector&)>& funct, int dim, int n /*,int level*/) {
   auto numfunc = [&funct](const base::DataVector& input,
@@ -785,9 +882,11 @@ base::DataVector PolynomialChaosExpansion::calculateCoefficients(int n, std::str
       for (base::DataVector::size_type i = 0; i < vec.getSize(); ++i) {
         prd *= evals[static_cast<int>(types[i])](index[j][i], vec[i], i);
       }
+      /*
       for (base::DataVector::size_type i = 0; i < vec.getSize(); ++i) {
         weightprd *= weights[static_cast<int>(types[i])](vec[i], i);
       }
+      */
       return prd * weightprd;
     };
     auto intfunc = [this, &numfunc](const base::DataVector& vec) {
@@ -800,12 +899,17 @@ base::DataVector PolynomialChaosExpansion::calculateCoefficients(int n, std::str
       num = sparseGridQuadrature(intfunc, static_cast<int>(types.size()), n);
     } else if (method == "adaptiveGrid") {
       num = adaptiveQuadrature(intfunc, static_cast<int>(types.size()), n);
+    } else if (method == "adaptiveWeighted") {
+      num = adaptiveQuadratureWeighted(intfunc, static_cast<int>(types.size()), n, 100);
     }
+    std::cout << "pce numerator: " << num << '\n';
     // calculate denominator
     double denom = 1.0;
+    /*
     for (std::vector<distributionType>::size_type i = 0; i < types.size(); ++i) {
       denom *= denoms[static_cast<int>(types[i])](index[j][i], i);
     }
+    */
     double aj = num / denom;
     result[j] = aj;
   }

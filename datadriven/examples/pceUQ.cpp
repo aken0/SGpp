@@ -38,11 +38,11 @@ int main() {
   std::cout << std::setprecision(9);
   sgpp::base::DistributionsVector dists;
   int dim = 3;
-  sgpp::base::DataVector lb{exp(.5), -160, -40};
-  sgpp::base::DataVector ub{exp(9.5), 560, 140};
+  sgpp::base::DataVector lb{exp(.5), -1600, -400};
+  sgpp::base::DataVector ub{exp(9.5), 5600, 1400};
   auto dist1 = std::make_shared<sgpp::base::DistributionLogNormal>(5, .5);
-  auto dist2 = std::make_shared<sgpp::base::DistributionNormal>(200, 40);
-  auto dist3 = std::make_shared<sgpp::base::DistributionNormal>(50, 10);
+  auto dist2 = std::make_shared<sgpp::base::DistributionNormal>(2000, 400);
+  auto dist3 = std::make_shared<sgpp::base::DistributionNormal>(500, 100);
   dists.push_back(dist1);
   dists.push_back(dist2);
   dists.push_back(dist3);
@@ -52,7 +52,7 @@ int main() {
             << '\n';
   sgpp::datadriven::PolynomialChaosExpansion ee1 =
       sgpp::datadriven::PolynomialChaosExpansion(e, 2, dists);
-  std::cout << ee1.getL2Error(2000, "adaptiveGrid") << " pce L2" << '\n';
+  std::cout << ee1.getL2Error(400, "adaptiveWeighted") << " pce L2" << '\n';
   std::cout << ee1.getMean(1600, "adaptiveGrid") << " pce mean" << '\n';
   std::cout << ee1.getVariance(200, "adaptiveGrid") << " pce variance" << '\n';
   std::cout << ee1.evalExpansion(evalVec, 200, "adaptiveGrid") << " pce eval" << '\n';
@@ -63,7 +63,7 @@ int main() {
   std::cout << '\n';
   sgpp::optimization::SplineResponseSurface surface2(e1, lb, ub,
                                                      sgpp::base::GridType::NakBsplineBoundary, 3);
-  surface2.surplusAdaptive(1600, 1);
+  surface2.surplusAdaptive(400, 1);
   std::cout << surface2.eval(evalVec) << ' ';
   std::cout << "surface eval" << '\n';
   std::cout << surface2.getIntegral() << ' ';
