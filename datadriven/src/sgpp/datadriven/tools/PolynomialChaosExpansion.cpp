@@ -12,6 +12,10 @@
 #include <numeric>
 #include <random>
 #include <sgpp/base/datatypes/DataVector.hpp>
+#include <sgpp/base/tools/DistributionBeta.hpp>
+#include <sgpp/base/tools/DistributionNormal.hpp>
+#include <sgpp/base/tools/DistributionTruncExponential.hpp>
+#include <sgpp/base/tools/DistributionTruncGamma.hpp>
 #include <sgpp/base/tools/GridPrinter.hpp>
 #include <sgpp/datadriven/tools/PolynomialChaosExpansion.hpp>
 #include <sgpp/globaldef.hpp>
@@ -19,8 +23,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-
-#include "sgpp/base/tools/DistributionNormal.hpp"
 namespace sgpp {
 namespace datadriven {
 PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const base::DataVector&)> f,
@@ -38,33 +40,48 @@ PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const ba
       types[i] = sgpp::datadriven::distributionType::Normal;
       ranges[i].first = -9;
       ranges[i].second = 9;
+      auto dist1 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+      standardvec.push_back(dist1);
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::TruncNormal) {
       types[i] = sgpp::datadriven::distributionType::Normal;
       ranges[i].first = -9;
       ranges[i].second = 9;
+      auto dist1 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+      standardvec.push_back(dist1);
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::Lognormal) {
       types[i] = sgpp::datadriven::distributionType::Normal;
       ranges[i].first = -9;
       ranges[i].second = 9;
+      auto dist1 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+      standardvec.push_back(dist1);
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::Uniform) {
       types[i] = sgpp::datadriven::distributionType::Uniform;
       this->ranges[i].first = -(1.0);
       this->ranges[i].second = (1.0);
+      auto dist1 = std::make_shared<sgpp::base::DistributionUniform>(-1, 1);
+      standardvec.push_back(dist1);
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::TruncGamma) {
       types[i] = sgpp::datadriven::distributionType::Gamma;
       this->alpha[i] = characteristics[0];
       this->ranges[i].first = 0;
       this->ranges[i].second = characteristics[1];
+      auto dist1 = std::make_shared<sgpp::base::DistributionTruncGamma>(0, characteristics[1]);
+      standardvec.push_back(dist1);
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::Beta) {
       types[i] = sgpp::datadriven::distributionType::Beta;
       this->ranges[i].first = -(1.0);
       this->ranges[i].second = (1.0);
       this->alpha[i] = characteristics[0];
       this->beta[i] = characteristics[1];
+      auto dist1 = std::make_shared<sgpp::base::DistributionBeta>(-1, 1);
+      standardvec.push_back(dist1);
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::TruncExponential) {
       types[i] = sgpp::datadriven::distributionType::Exponential;
       this->ranges[i].first = 0;
       this->ranges[i].second = characteristics[0];
+      auto dist1 =
+          std::make_shared<sgpp::base::DistributionTruncExponential>(0, characteristics[0]);
+      standardvec.push_back(dist1);
     }
   }
 

@@ -27,8 +27,8 @@ int main() {
   // auto dist2 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
   // auto dist3 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
   auto dist1 = std::make_shared<sgpp::base::DistributionLogNormal>(5, .5);
-  auto dist2 = std::make_shared<sgpp::base::DistributionNormal>(200, 40);
-  auto dist3 = std::make_shared<sgpp::base::DistributionNormal>(50, 10);
+  auto dist2 = std::make_shared<sgpp::base::DistributionNormal>(2000, 400);
+  auto dist3 = std::make_shared<sgpp::base::DistributionNormal>(500, 100);
   dists.push_back(dist1);
   dists.push_back(dist2);
   dists.push_back(dist3);
@@ -41,7 +41,7 @@ int main() {
   of.open("plot_pce/" + path + ".txt", std::ios::out | std::ios::trunc);
   of << std::fixed;
   of << std::setprecision(std::numeric_limits<double>::digits10 + 1);
-  int points = 2800;
+  int points = 3000;
   int dim = 3;
   std::cout << "base" << '\n';
   for (int i = 50; i <= points; i *= 1.6) {
@@ -135,8 +135,8 @@ int main() {
       clone = std::unique_ptr<sgpp::base::ScalarFunction>(new Functe(*this));
     }
   };
-  sgpp::base::DataVector lb{exp(.5), -160, -40};
-  sgpp::base::DataVector ub{exp(9.5), 560, 140};
+  sgpp::base::DataVector lb{exp(.5), -1600, -400};
+  sgpp::base::DataVector ub{exp(9.5), 5600, 1400};
   for (auto method : {"sparseGrid", "adaptiveGrid"}) {
     for (auto function : {e}) {
       for (auto order : {1, 3, 5}) {

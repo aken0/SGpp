@@ -22,6 +22,7 @@ class PolynomialChaosExpansion {
   int order;
   std::vector<distributionType> types;
   sgpp::base::DistributionsVector distributions;
+  sgpp::base::DistributionsVector standardvec;
   std::vector<std::pair<double, double>> ranges;
   base::DataVector alpha;
   base::DataVector beta;
