@@ -59,13 +59,13 @@ int main() {
   dists.push_back(dist1);
   dists.push_back(dist3);
   sgpp::datadriven::PolynomialChaosExpansion ee =
-      sgpp::datadriven::PolynomialChaosExpansion(f, 3, dists);
+      sgpp::datadriven::PolynomialChaosExpansion(f, 1, dists);
   std::cout << "-----------------------------------------------------------------------------------"
             << '\n';
   std::cout << "-----------------------------------------------------------------------------------"
             << '\n';
 
-  std::cout << ee.getMean(300, "adaptiveGrid") << " pce mean" << '\n';
+  std::cout << ee.getMean(800, "adaptiveWeighted") << " pce mean" << '\n';
   std::cout << ee.getVariance(400, "adaptiveGrid") << " pce variance" << '\n';
   std::cout << ee.evalExpansion(sgpp::base::DataVector(dim, 0), 200, "adaptiveGrid") << " pce eval"
             << '\n';
@@ -98,8 +98,8 @@ int main() {
             << '\n';
 
   sgpp::datadriven::PolynomialChaosExpansion ee1 =
-      sgpp::datadriven::PolynomialChaosExpansion(e, 5, dists);
-  std::cout << ee1.getMean(400, "adaptiveGrid") << " pce mean" << '\n';
+      sgpp::datadriven::PolynomialChaosExpansion(e, 3, dists);
+  std::cout << ee1.getMean(800, "adaptiveWeighted") << " pce mean" << '\n';
   std::cout << ee1.getVariance(600, "adaptiveGrid") << " pce variance" << '\n';
   std::cout << ee1.evalExpansion(sgpp::base::DataVector(dim, 0), 600, "adaptiveGrid") << " pce eval"
             << '\n';

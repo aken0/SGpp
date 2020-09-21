@@ -396,7 +396,8 @@ void PolynomialChaosExpansion::printAdaptiveGrid(
 }
 
 double PolynomialChaosExpansion::sparseGridQuadrature(
-    const std::function<double(const base::DataVector&)>& funct, int dim, int n /*,int level*/) {
+    const std::function<double(const base::DataVector&)>& funct, int dim, int n,
+    size_t quadOrder /*,int level*/) {
   auto numfunc = [&funct](const base::DataVector& input,
                           const std::vector<std::pair<double, double>>& ranges) {
     base::DataVector temp(input.size());
@@ -453,6 +454,7 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
     evals = coeffs;
   }
 
+  /*
   std::unique_ptr<sgpp::base::OperationQuadrature> opQ(
       sgpp::op_factory::createOperationQuadrature(*grid));
   double res = opQ->doQuadrature(evals);
@@ -462,6 +464,11 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
     prod *= (pair.second - pair.first);
   }
   return res * prod;
+  */
+  std::unique_ptr<sgpp::base::OperationWeightedQuadrature> opWQ(
+      sgpp::op_factory::createOperationWeightedQuadrature(*grid, quadOrder));
+  double res = opWQ->doWeightedQuadrature(coeffs, standardvec);
+  return res /** prod*/;
 }
 
 double PolynomialChaosExpansion::adaptiveQuadrature(
@@ -649,10 +656,8 @@ double PolynomialChaosExpansion::adaptiveQuadratureWeighted(
   }
   std::unique_ptr<sgpp::base::OperationWeightedQuadrature> opWQ(
       sgpp::op_factory::createOperationWeightedQuadrature(*grid, quadOrder));
-  sgpp::base::OperationWeightedQuadrature* opWQuad =
-      sgpp::op_factory::createOperationWeightedQuadrature(*grid, quadOrder);
   double res = opWQ->doWeightedQuadrature(coeffs, standardvec);
-  std::cout << "res: " << res << " prod: " << prod << '\n';
+  // std::cout << "res: " << res << " prod: " << prod << '\n';
   return res /** prod*/;
 }
 double PolynomialChaosExpansion::sparseGridQuadratureL2(
@@ -896,13 +901,12 @@ base::DataVector PolynomialChaosExpansion::calculateCoefficients(int n, std::str
     if (method == "MC") {
       num = monteCarloQuad(intfunc, n);
     } else if (method == "sparseGrid") {
-      num = sparseGridQuadrature(intfunc, static_cast<int>(types.size()), n);
+      num = sparseGridQuadrature(intfunc, static_cast<int>(types.size()), n, 100);
     } else if (method == "adaptiveGrid") {
       num = adaptiveQuadrature(intfunc, static_cast<int>(types.size()), n);
     } else if (method == "adaptiveWeighted") {
       num = adaptiveQuadratureWeighted(intfunc, static_cast<int>(types.size()), n, 100);
     }
-    std::cout << "pce numerator: " << num << '\n';
     // calculate denominator
     double denom = 1.0;
     /*
@@ -921,7 +925,6 @@ base::DataVector PolynomialChaosExpansion::getCoefficients() { return coefficien
 
 void PolynomialChaosExpansion::clearCoefficients() { this->coefficients.clear(); }
 
-// TODO Debug this
 double PolynomialChaosExpansion::evalExpansion(const base::DataVector& xi, int n,
                                                std::string method) {
   if (coefficients.empty()) {
@@ -986,8 +989,6 @@ double PolynomialChaosExpansion::getL2Error(int n, std::string method) {
         transvec[i] = randvec[i];
       }
     }
-    // std::cout << "func: " << func(transvec) << ", expan: " << evalExpansion(transvec, n, method)
-    // << transvec << '\n';
     return std::pow(func(transvec) - (evalExpansion(randvec, n, method)), 2);
   };
   size_t num = 100000;

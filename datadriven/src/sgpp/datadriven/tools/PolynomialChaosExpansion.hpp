@@ -51,7 +51,7 @@ class PolynomialChaosExpansion {
   double monteCarloQuad(const std::function<double(const base::DataVector&)>& funct,
                         const size_t& n);
   double sparseGridQuadrature(const std::function<double(const base::DataVector&)>& funct, int dim,
-                              int n /*,int level*/);
+                              int n, size_t quadOrder /*,int level*/);
   double adaptiveQuadrature(const std::function<double(const base::DataVector&)>& funct, int dim,
                             size_t n);
   double adaptiveQuadratureWeighted(const std::function<double(const base::DataVector&)>& funct,

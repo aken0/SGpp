@@ -41,13 +41,13 @@ int main() {
   }
   of << '\n';
   for (int i = 50; i <= points; i *= 1.5) {
-    auto re = ee.adaptiveQuadrature(e, dim, i);
+    auto re = ee.adaptiveQuadratureWeighted(e, dim, i, 100);
     of << re << ',';
   }
   std::cout << "e" << '\n';
   of << '\n';
   for (int i = 50; i <= points; i *= 1.5) {
-    auto re = ee.adaptiveQuadrature(f, dim, i);
+    auto re = ee.adaptiveQuadratureWeighted(f, dim, i, 100);
     of << re << ',';
   }
 
@@ -57,7 +57,7 @@ int main() {
   std::cout << "f" << '\n';
   of << '\n';
   for (int i = 50; i <= points; i *= 1.5) {
-    auto re = ee.adaptiveQuadrature(g, dim, i);
+    auto re = ee.adaptiveQuadratureWeighted(g, dim, i, 100);
     of << re << ',';
   }
   ee.printAdaptiveGrid(g, dim, 200, "plot_pce/" + path + "(g-level5).txt");
@@ -83,19 +83,19 @@ int main() {
   of << '\n';
   std::cout << "g" << '\n';
   for (int i = 50; i <= points; i *= 1.5) {
-    auto re = ee.sparseGridQuadrature(e, dim, i);
+    auto re = ee.sparseGridQuadrature(e, dim, i, 100);
     of << re << ',';
   }
   std::cout << "e2" << '\n';
   of << '\n';
   for (int i = 50; i <= points; i *= 1.5) {
-    auto re = ee.sparseGridQuadrature(f, dim, i);
+    auto re = ee.sparseGridQuadrature(f, dim, i, 100);
     of << re << ',';
   }
   std::cout << "f2" << '\n';
   of << '\n';
   for (int i = 50; i <= points; i *= 1.5) {
-    auto re = ee.sparseGridQuadrature(g, dim, i);
+    auto re = ee.sparseGridQuadrature(g, dim, i, 100);
     of << re << ',';
   }
   std::cout << "g2" << '\n';
@@ -150,7 +150,7 @@ int main() {
   of << '\n';
   std::cout << "gmc" << '\n';
 
-  for (auto method : {"sparseGrid", "adaptiveGrid"}) {
+  for (auto method : {"sparseGrid", "adaptiveWeighted"}) {
     for (auto function : {e, f, g}) {
       for (auto order : {1, 3, 10}) {
         for (int i = 50; i <= points; i *= 1.5) {

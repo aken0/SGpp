@@ -17,9 +17,7 @@
 // functions to be integrated
 // Stress:
 double e(const sgpp::base::DataVector& vec) {
-  auto a = 7;
-  auto b = .1;
-  return sin(vec[0]) + a * pow(sin(vec[1]), 2) + b * pow(vec[2], 4) * sin(vec[0]);
+  return sin(vec[0]) + 7 * pow(sin(vec[1]), 1) + 0.05 * pow(vec[2], 4) /** sin(vec[0])*/;
 }
 class Functe : public sgpp::base::ScalarFunction {
  public:
@@ -52,7 +50,7 @@ int main() {
   std::cout << "-----------------------------------------------------------------------------------"
             << '\n';
   sgpp::datadriven::PolynomialChaosExpansion ee1 =
-      sgpp::datadriven::PolynomialChaosExpansion(e, 1, dists);
+      sgpp::datadriven::PolynomialChaosExpansion(e, 3, dists);
   std::cout << ee1.getL2Error(1000, "adaptiveWeighted") << " pce L2" << '\n';
   std::cout << ee1.getMean(1600, "adaptiveGrid") << " pce mean" << '\n';
   std::cout << ee1.getVariance(200, "adaptiveGrid") << " pce variance" << '\n';
@@ -62,6 +60,11 @@ int main() {
     std::cout << entry << ", ";
   }
   std::cout << '\n';
+  std::cout << "-----------------------------------------------------------------------------------"
+            << '\n';
+  std::cout << "function eval: " << e(evalVec) << '\n';
+  std::cout << "-----------------------------------------------------------------------------------"
+            << '\n';
   sgpp::optimization::SplineResponseSurface surface2(e1, lb, ub,
                                                      sgpp::base::GridType::NakBsplineBoundary, 3);
   surface2.surplusAdaptive(1600, 1);
