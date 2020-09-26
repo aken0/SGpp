@@ -15,7 +15,7 @@
 double f(const sgpp::base::DataVector& vec) {
   return (sin(vec[2] * vec[2] * vec[2]) /* * std::exp(-std::pow(vec[0], 2) / 2)*/ -
           (vec[1] * vec[1]) /* * std::exp(-std::pow(vec[1], 2) / 2)*/ /
-              vec[0] /* * std::exp(-std::pow(vec[2], 2) / 2)*/);
+              pow(cos(vec[0]), 3) /* * std::exp(-std::pow(vec[2], 2) / 2)*/);
 }
 double e(const sgpp::base::DataVector& vec) {
   return 1 - ((4 * vec[1]) / (5 * 225 * vec[0])) -
@@ -41,57 +41,69 @@ int main() {
   of.open("plot_pce/" + path + ".txt", std::ios::out | std::ios::trunc);
   of << std::fixed;
   of << std::setprecision(std::numeric_limits<double>::digits10 + 1);
-  int points = 1200;
+  int points = 1500;
   int dim = 3;
-  std::cout << "base" << '\n';
+  sgpp::base::DataVector gridPoints;
   for (int i = 50; i <= points; i *= 2) {
+    std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearBoundaryGrid(dim));
+    sgpp::base::GridStorage& gridStorage = grid->getStorage();
+    int j = 1;
+    while (gridStorage.getSize() < i) {
+      gridStorage.clear();
+      grid->getGenerator().regular(j);
+      ++j;
+    }
+    gridPoints.append(gridStorage.getSize());
+  }
+  std::cout << "base" << '\n';
+  for (int i : gridPoints) {
     of << i << ',';
   }
   of << '\n';
-  for (int i = 50; i <= points; i *= 2) {
+  for (int i : gridPoints) {
     auto re = ee.adaptiveQuadratureWeighted(e, dim, i, 100);
     of << re << ',';
   }
   std::cout << "e" << '\n';
   of << '\n';
-  for (int i = 50; i <= points; i *= 2) {
+  for (int i : gridPoints) {
     auto re = ee.adaptiveQuadratureWeighted(f, dim, i, 100);
     of << re << ',';
   }
   std::cout << "f" << '\n';
   of << '\n';
-  for (int i = 50; i <= points; i *= 2) {
+  for (int i : gridPoints) {
     auto re = ee.adaptiveQuadratureL2(e, dim, i);
     of << re << ',';
   }
   of << '\n';
   std::cout << "e" << '\n';
-  for (int i = 50; i <= points; i *= 2) {
+  for (int i : gridPoints) {
     auto re = ee.adaptiveQuadratureL2(f, dim, i);
     of << re << ',';
   }
   of << '\n';
   std::cout << "f" << '\n';
   // sparseGridQuadrature
-  for (int i = 50; i <= points; i *= 2) {
+  for (int i : gridPoints) {
     auto re = ee.sparseGridQuadrature(e, dim, i, 100);
     of << re << ',';
   }
   std::cout << "e2" << '\n';
   of << '\n';
-  for (int i = 50; i <= points; i *= 2) {
+  for (int i : gridPoints) {
     auto re = ee.sparseGridQuadrature(f, dim, i, 100);
     of << re << ',';
   }
   of << '\n';
   std::cout << "f2" << '\n';
-  for (int i = 50; i <= points; i *= 2) {
+  for (int i : gridPoints) {
     auto re = ee.sparseGridQuadratureL2(e, dim, i);
     of << re << ',';
   }
   of << '\n';
   std::cout << "e2" << '\n';
-  for (int i = 50; i <= points; i *= 2) {
+  for (int i : gridPoints) {
     auto re = ee.sparseGridQuadratureL2(f, dim, i);
     of << re << ',';
   }
@@ -101,7 +113,7 @@ int main() {
   for (auto method : {"sparseGrid", "adaptiveWeighted"}) {
     for (auto function : {e, f}) {
       for (auto order : {1, 3, 5}) {
-        for (int i = 50; i <= points; i *= 2) {
+        for (int i : gridPoints) {
           auto ee = sgpp::datadriven::PolynomialChaosExpansion(function, order, dists);
           ee.calculateCoefficients(i, method);
           auto re = ee.getL2Error(i, method);
@@ -115,7 +127,7 @@ int main() {
   }
   of << '\n';
   std::cout << "done" << '\n';
-  for (int i = 50; i <= points; i *= 2) {
+  for (int i : gridPoints) {
     std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearBoundaryGrid(dim));
     sgpp::base::GridStorage& gridStorage = grid->getStorage();
     int j = 1;
@@ -140,10 +152,10 @@ int main() {
   for (auto method : {"sparseGrid", "adaptiveWeighted"}) {
     for (auto function : {e}) {
       for (auto order : {1, 3, 5}) {
-        for (int i = 50; i <= points; i *= 2) {
+        for (int i : gridPoints) {
           auto e1 = std::make_shared<Functe>(dim);
           sgpp::optimization::SplineResponseSurface surface(
-              e1, lb, ub, sgpp::base::GridType::NakBsplineBoundary, 3);
+              e1, lb, ub, sgpp::base::GridType::NakBsplineExtended);
           surface.surplusAdaptive(i, 1);
           auto ee = sgpp::datadriven::PolynomialChaosExpansion(function, order, dists);
           ee.calculateCoefficients(i, method);
@@ -160,10 +172,10 @@ int main() {
   for (auto method : {"sparseGrid", "adaptiveWeighted"}) {
     for (auto function : {e}) {
       for (auto order : {1, 3, 5}) {
-        for (int i = 50; i <= points; i *= 2) {
+        for (int i : gridPoints) {
           auto e1 = std::make_shared<Functe>(dim);
           sgpp::optimization::SplineResponseSurface surface(
-              e1, lb, ub, sgpp::base::GridType::NakBsplineBoundary, 3);
+              e1, lb, ub, sgpp::base::GridType::NakBsplineExtended);
           surface.surplusAdaptive(i, 1);
           auto ee = sgpp::datadriven::PolynomialChaosExpansion(function, order, dists);
           ee.calculateCoefficients(i, method);

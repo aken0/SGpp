@@ -112,6 +112,7 @@ PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const ba
     return f(temp);
   };
   // order:hermite,jacobi,legendre,laguerre,genlaguerre
+  /*
   this->weights = std::vector<std::function<double(double, size_t)>>{
       {[](double x, size_t i) { return std::exp(-std::pow(x, 2) / 2); }},
       {[this](double x, size_t i) -> double {
@@ -122,15 +123,16 @@ PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const ba
       {[this](double x, size_t i) -> double {
         return std::pow(x, this->alpha[i]) * std::exp(-x);
       }}};
+      */
   this->denoms = std::vector<std::function<double(double, size_t)>>{
-      {[](double j, size_t i) { return std::sqrt(2.0 * M_PI) * std::tgamma(j + 1.0); }},
+      {[](double j, size_t i) { return std::tgamma(j + 1.0); }},
       {[this](double j, size_t i) {
         return ((std::pow(2.0, this->alpha[i] + this->beta[i] + 1.0) /
                  (2.0 * j + this->alpha[i] + this->beta[i] + 1.0)) *
                 ((std::tgamma(j + this->alpha[i] + 1.0) * std::tgamma(j + this->beta[i] + 1.0)) /
                  (std::tgamma(j + this->alpha[i] + this->beta[i] + 1.0) * std::tgamma(j + 1.0))));
       }},
-      {[](double j, size_t i) { return 2.0 / ((2.0 * j) + 1.0); }},
+      {[](double j, size_t i) { return 1.0 / ((2.0 * j) + 1.0); }},
       {[](double j, size_t i) { return 1.0; }},
       {[this](double j, size_t i) {
         return std::tgamma(j + this->alpha[i] + 1.0) / std::tgamma(j + 1.0);
@@ -270,7 +272,7 @@ double PolynomialChaosExpansion::monteCarloQuad(
 }
 
 void PolynomialChaosExpansion::printGrid(int dim, int n, std::string tFilename) {
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3, 3));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   int i = 0;
   while (gridStorage.getSize() < n) {
@@ -303,9 +305,9 @@ void PolynomialChaosExpansion::printAdaptiveGrid(
     }
     return funct(temp);
   };
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3, 3));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
-  grid->getGenerator().regular(1);
+  grid->getGenerator().regular(2);
 
   base::DataVector coeffs(gridStorage.getSize());
   /**
@@ -336,7 +338,7 @@ void PolynomialChaosExpansion::printAdaptiveGrid(
      * Refining the point means, that all children of this point (if not already present) are
      * added to the grid. Also all missing parents are added (recursively).
      */
-    base::SurplusRefinementFunctor functor(coeffs, 5);
+    base::SurplusRefinementFunctor functor(coeffs, 10);
     grid->getGenerator().refine(functor, &addedPoints);
 
     coeffs.resize(gridStorage.getSize());
@@ -406,7 +408,7 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
     }
     return funct(temp);
   };
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3, 3));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   int i = 0;
   while (gridStorage.getSize() < n) {
@@ -482,9 +484,9 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
     return funct(temp);
   };
 
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3, 3));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
-  grid->getGenerator().regular(1);
+  grid->getGenerator().regular(2);
 
   base::DataVector coeffs(gridStorage.getSize());
   /**
@@ -510,7 +512,7 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
      * Refining the point means, that all children of this point (if not already present) are
      * added to the grid. Also all missing parents are added (recursively).
      */
-    base::SurplusRefinementFunctor functor(coeffs, 5);
+    base::SurplusRefinementFunctor functor(coeffs, 10);
     grid->getGenerator().refine(functor, &addedPoints);
 
     coeffs.resize(gridStorage.getSize());
@@ -577,9 +579,9 @@ double PolynomialChaosExpansion::adaptiveQuadratureWeighted(
     return funct(temp);
   };
 
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3, 3));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
-  grid->getGenerator().regular(1);
+  grid->getGenerator().regular(2);
 
   base::DataVector coeffs(gridStorage.getSize());
   /**
@@ -605,7 +607,7 @@ double PolynomialChaosExpansion::adaptiveQuadratureWeighted(
      * Refining the point means, that all children of this point (if not already present) are
      * added to the grid. Also all missing parents are added (recursively).
      */
-    base::SurplusRefinementFunctor functor(coeffs, 5);
+    base::SurplusRefinementFunctor functor(coeffs, 10);
     grid->getGenerator().refine(functor, &addedPoints);
 
     coeffs.resize(gridStorage.getSize());
@@ -657,7 +659,6 @@ double PolynomialChaosExpansion::adaptiveQuadratureWeighted(
   std::unique_ptr<sgpp::base::OperationWeightedQuadrature> opWQ(
       sgpp::op_factory::createOperationWeightedQuadrature(*grid, quadOrder));
   double res = opWQ->doWeightedQuadrature(coeffs, standardvec);
-  // std::cout << "res: " << res << " prod: " << prod << '\n';
   return res /** prod*/;
 }
 double PolynomialChaosExpansion::sparseGridQuadratureL2(
@@ -670,7 +671,7 @@ double PolynomialChaosExpansion::sparseGridQuadratureL2(
     }
     return funct(temp);
   };
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3, 3));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
 
   int i = 0;
@@ -752,9 +753,9 @@ double PolynomialChaosExpansion::adaptiveQuadratureL2(
     return funct(temp);
   };
 
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineBoundaryGrid(dim, 3, 3));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
-  grid->getGenerator().regular(1);
+  grid->getGenerator().regular(2);
 
   base::DataVector coeffs(gridStorage.getSize());
 
@@ -779,7 +780,7 @@ double PolynomialChaosExpansion::adaptiveQuadratureL2(
      * Refining the point means, that all children of this point (if not already present) are
      * added to the grid. Also all missing parents are added (recursively).
      */
-    base::SurplusRefinementFunctor functor(coeffs, 5);
+    base::SurplusRefinementFunctor functor(coeffs, 10);
     grid->getGenerator().refine(functor, &addedPoints);
 
     coeffs.resize(gridStorage.getSize());
@@ -909,11 +910,10 @@ base::DataVector PolynomialChaosExpansion::calculateCoefficients(int n, std::str
     }
     // calculate denominator
     double denom = 1.0;
-    /*
     for (std::vector<distributionType>::size_type i = 0; i < types.size(); ++i) {
       denom *= denoms[static_cast<int>(types[i])](index[j][i], i);
     }
-    */
+    // std::cout << "numerator: " << num << " ,denominator: " << denom << '\n';
     double aj = num / denom;
     result[j] = aj;
   }
