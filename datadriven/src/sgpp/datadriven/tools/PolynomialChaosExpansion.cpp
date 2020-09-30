@@ -65,7 +65,8 @@ PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const ba
       this->alpha[i] = characteristics[0];
       this->ranges[i].first = 0;
       this->ranges[i].second = characteristics[1];
-      auto dist1 = std::make_shared<sgpp::base::DistributionTruncGamma>(0, characteristics[1]);
+      auto dist1 = std::make_shared<sgpp::base::DistributionTruncGamma>(characteristics[0],
+                                                                        characteristics[1]);
       standardvec.push_back(dist1);
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::Beta) {
       types[i] = sgpp::datadriven::distributionType::Beta;
@@ -73,14 +74,15 @@ PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const ba
       this->ranges[i].second = (1.0);
       this->alpha[i] = characteristics[0];
       this->beta[i] = characteristics[1];
-      auto dist1 = std::make_shared<sgpp::base::DistributionBeta>(-1, 1);
+      auto dist1 =
+          std::make_shared<sgpp::base::DistributionBeta>(characteristics[0], characteristics[1]);
       standardvec.push_back(dist1);
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::TruncExponential) {
       types[i] = sgpp::datadriven::distributionType::Exponential;
       this->ranges[i].first = 0;
       this->ranges[i].second = characteristics[0];
-      auto dist1 =
-          std::make_shared<sgpp::base::DistributionTruncExponential>(0, characteristics[0]);
+      auto dist1 = std::make_shared<sgpp::base::DistributionTruncExponential>(characteristics[0],
+                                                                              characteristics[1]);
       standardvec.push_back(dist1);
     }
   }
@@ -127,15 +129,19 @@ PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const ba
   this->denoms = std::vector<std::function<double(double, size_t)>>{
       {[](double j, size_t i) { return std::tgamma(j + 1.0); }},
       {[this](double j, size_t i) {
-        return ((std::pow(2.0, this->alpha[i] + this->beta[i] + 1.0) /
-                 (2.0 * j + this->alpha[i] + this->beta[i] + 1.0)) *
-                ((std::tgamma(j + this->alpha[i] + 1.0) * std::tgamma(j + this->beta[i] + 1.0)) /
-                 (std::tgamma(j + this->alpha[i] + this->beta[i] + 1.0) * std::tgamma(j + 1.0))));
+        return (std::pow(2.0, this->alpha[i] + this->beta[i] + 1.0) /
+                (2.0 * j + this->alpha[i] + this->beta[i] + 1.0)) *
+               ((std::tgamma(j + this->alpha[i] + 1.0) * std::tgamma(j + this->beta[i] + 1.0)) /
+                (std::tgamma(j + this->alpha[i] + this->beta[i] + 1.0) * std::tgamma(j + 1.0))) /
+               (std::pow(2, this->alpha[i] + this->beta[i] + 1) *
+                ((std::tgamma(this->alpha[i] + 1) * std::tgamma(this->beta[i] + 1)) /
+                 std::tgamma(this->alpha[i] + this->beta[i] + 2)));
       }},
       {[](double j, size_t i) { return 1.0 / ((2.0 * j) + 1.0); }},
       {[](double j, size_t i) { return 1.0; }},
       {[this](double j, size_t i) {
-        return std::tgamma(j + this->alpha[i] + 1.0) / std::tgamma(j + 1.0);
+        return (std::tgamma(j + this->alpha[i] + 1.0) /
+                (std::tgamma(j + 1.0) * std::tgamma(this->alpha[i] + 1.0)));
       }}};
 
   this->evals = std::vector<std::function<double(double, double, size_t)>>{
@@ -913,7 +919,7 @@ base::DataVector PolynomialChaosExpansion::calculateCoefficients(int n, std::str
     for (std::vector<distributionType>::size_type i = 0; i < types.size(); ++i) {
       denom *= denoms[static_cast<int>(types[i])](index[j][i], i);
     }
-    // std::cout << "numerator: " << num << " ,denominator: " << denom << '\n';
+    std::cout << "j: " << j << " ,numerator: " << num << " ,denominator: " << denom << '\n';
     double aj = num / denom;
     result[j] = aj;
   }
@@ -1015,7 +1021,10 @@ double PolynomialChaosExpansion::getVariance(int n, std::string method) {
             (std::pow(2.0, this->alpha[i] + this->beta[i] + 1.0) /
              (2.0 * j + this->alpha[i] + this->beta[i] + 1.0)) *
             ((std::tgamma(j + this->alpha[i] + 1.0) * std::tgamma(j + this->beta[i] + 1.0)) /
-             (std::tgamma(j + this->alpha[i] + this->beta[i] + 1.0) * std::tgamma(j + 1.0))));
+             (std::tgamma(j + this->alpha[i] + this->beta[i] + 1.0) * std::tgamma(j + 1.0))) /
+            (std::pow(2, this->alpha[i] + this->beta[i] + 1) *
+             ((std::tgamma(this->alpha[i] + 1) * std::tgamma(this->beta[i] + 1)) /
+              std::tgamma(this->alpha[i] + this->beta[i] + 2))));
       }},
       {[](double j, size_t i) { return std::sqrt(1.0 / ((2.0 * j) + 1.0)); }},
       {[](double j, size_t i) { return 1.0; }},

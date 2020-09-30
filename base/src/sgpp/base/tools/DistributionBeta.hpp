@@ -44,7 +44,7 @@ class DistributionBeta : public Distribution {
   double eval(double x) {
     return (std::pow(1 - x, alpha) * std::pow(1 + x, beta)) /
            (std::pow(2, alpha + beta + 1) *
-            ((std::tgamma(alpha) * std::tgamma(beta)) / std::tgamma(alpha + beta)));
+            ((std::tgamma(alpha + 1) * std::tgamma(beta + 1)) / std::tgamma(alpha + beta + 2)));
   }
 
   sgpp::base::DataVector getBounds() {
