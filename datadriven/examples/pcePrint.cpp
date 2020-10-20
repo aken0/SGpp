@@ -16,7 +16,11 @@
 #include <vector>
 // functions to be integrated
 // Stress:
-double e(const sgpp::base::DataVector& vec) { return 2 + (vec[0]) + vec[1]; }
+double e(const sgpp::base::DataVector& vec) {
+  // return 2 + 3 * pow(vec[0] - 1, 2) + vec[1];
+  return 0.05 * pow(vec[0] - 2, 2) + 2 * pow(vec[1] + 1, 1);
+  // return sin(vec[0] - 2) / exp(vec[1]);
+}
 class Functe : public sgpp::base::ScalarFunction {
  public:
   explicit Functe() : sgpp::base::ScalarFunction(2) {}
@@ -36,17 +40,17 @@ int main() {
   sgpp::base::DistributionsVector dists;
   int dim = 2;
   sgpp::base::DataVector lb{0, 0};
-  sgpp::base::DataVector ub{100, 100};
-  auto dist1 = std::make_shared<sgpp::base::DistributionTruncGamma>(7, 100);
-  auto dist2 = std::make_shared<sgpp::base::DistributionTruncGamma>(20, 100);
+  sgpp::base::DataVector ub{20, 20};
+  auto dist1 = std::make_shared<sgpp::base::DistributionTruncGamma>(2, 20);
+  auto dist2 = std::make_shared<sgpp::base::DistributionTruncGamma>(2, 20);
   dists.push_back(dist1);
   dists.push_back(dist2);
   auto e1 = std::make_shared<Functe>();
   std::cout << "-----------------------------------------------------------------------------------"
             << '\n';
   sgpp::datadriven::PolynomialChaosExpansion ee1 =
-      sgpp::datadriven::PolynomialChaosExpansion(e, 1, dists);
-  std::cout << ee1.getL2Error(400, "adaptiveWeighted") << " pce L2" << '\n';
+      sgpp::datadriven::PolynomialChaosExpansion(e, 2, dists);
+  std::cout << ee1.getL2Error(1000, "adaptiveWeighted") << " pce L2" << '\n';
   std::cout << ee1.getMean(400, "adaptiveGrid") << " pce mean" << '\n';
   std::cout << ee1.getVariance(200, "adaptiveGrid") << " pce variance" << '\n';
   std::cout << ee1.evalExpansion(sgpp::base::DataVector(dim, 0), 200, "adaptiveGrid") << " pce eval"

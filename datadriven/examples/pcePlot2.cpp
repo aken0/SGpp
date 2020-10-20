@@ -4,6 +4,9 @@
 #include <iostream>
 #include <limits>
 #include <sgpp/base/datatypes/DataVector.hpp>
+#include <sgpp/base/tools/DistributionBeta.hpp>
+#include <sgpp/base/tools/DistributionTruncExponential.hpp>
+#include <sgpp/base/tools/DistributionTruncGamma.hpp>
 #include <sgpp/datadriven/tools/PolynomialChaosExpansion.hpp>
 #include <sgpp/globaldef.hpp>
 #include <sgpp_base.hpp>
@@ -13,20 +16,33 @@
 #include <vector>
 // functions to be integrated
 double e(const sgpp::base::DataVector& vec) {
+  /*
   return 1 - ((4 * vec[1]) / (5 * 225 * vec[0])) -
          ((vec[2] * vec[2]) / (25 * 225 * vec[0] * vec[0]));
+         */
+  // return pow(vec[0] - 2, 3) + 3 * pow(vec[1] + 1, 2);
+  return 0.05 * pow(vec[0] - 2, 2) + 2 * pow(vec[1] + 1, 1);
 }
 int main() {
   sgpp::base::DistributionsVector dists;
 
+  /*
   auto dist1 = std::make_shared<sgpp::base::DistributionLogNormal>(5, .5);
   auto dist2 = std::make_shared<sgpp::base::DistributionNormal>(2000, 400);
   auto dist3 = std::make_shared<sgpp::base::DistributionNormal>(500, 100);
+  */
+
+  auto dist1 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+  auto dist2 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+  /*
   sgpp::base::DataVector lb{exp(.5), -1600, -400};
   sgpp::base::DataVector ub{exp(9.5), 5600, 1400};
+  */
+  sgpp::base::DataVector lb{-9, -9};
+  sgpp::base::DataVector ub{9, 9};
   dists.push_back(dist1);
   dists.push_back(dist2);
-  dists.push_back(dist3);
+  // dists.push_back(dist3);
 
   class Functe : public sgpp::base::ScalarFunction {
    public:
@@ -38,7 +54,7 @@ int main() {
   };
 
   sgpp::datadriven::PolynomialChaosExpansion ee =
-      sgpp::datadriven::PolynomialChaosExpansion(e, 5, dists);
+      sgpp::datadriven::PolynomialChaosExpansion(e, 1, dists);
   std::fstream of;
   std::string path;
   std::cout << "enter path: " << '\n';
@@ -46,11 +62,11 @@ int main() {
   of.open("plot_pce/" + path + ".txt", std::ios::out | std::ios::trunc);
   of << std::fixed;
   of << std::setprecision(std::numeric_limits<double>::digits10 + 1);
-  int points = 400;
-  int dim = 3;
+  int points = 900;
+  int dim = 2;
   std::vector<int> gridPoints;
 
-  for (int i = 50; i <= points; i *= 2) {
+  for (int i = 50; i <= points; i *= 1.6) {
     std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createLinearBoundaryGrid(dim));
     sgpp::base::GridStorage& gridStorage = grid->getStorage();
     int j = 1;
@@ -94,7 +110,7 @@ int main() {
 
   for (auto method : {"sparseGrid", "adaptiveWeighted"}) {
     for (auto function : {e}) {
-      for (auto order : {1, 3, 5}) {
+      for (auto order : {1, 2, 5}) {
         for (int i : gridPoints) {
           auto ee = sgpp::datadriven::PolynomialChaosExpansion(function, order, dists);
           ee.calculateCoefficients(i, method);
@@ -141,7 +157,7 @@ int main() {
 
   for (auto method : {"sparseGrid", "adaptiveWeighted"}) {
     for (auto function : {e}) {
-      for (auto order : {1, 3, 5}) {
+      for (auto order : {1, 2, 5}) {
         for (int i : gridPoints) {
           auto ee = sgpp::datadriven::PolynomialChaosExpansion(function, order, dists);
           ee.calculateCoefficients(i, method);
@@ -173,7 +189,7 @@ int main() {
 
   for (auto method : {"sparseGrid", "adaptiveWeighted"}) {
     for (auto function : {e}) {
-      for (auto order : {1, 3, 5}) {
+      for (auto order : {1, 2, 5}) {
         for (int i : gridPoints) {
           auto ee = sgpp::datadriven::PolynomialChaosExpansion(function, order, dists);
           ee.calculateCoefficients(i, method);

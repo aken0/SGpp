@@ -51,7 +51,7 @@ int main() {
             << '\n';
   sgpp::datadriven::PolynomialChaosExpansion ee1 =
       sgpp::datadriven::PolynomialChaosExpansion(e, 4, dists);
-  std::cout << ee1.getL2Error(2000, "adaptiveWeighted") << " pce L2" << '\n';
+  std::cout << ee1.getL2Error(1000, "adaptiveWeighted") << " pce L2" << '\n';
   std::cout << ee1.getMean(1600, "adaptiveGrid") << " pce mean" << '\n';
   std::cout << ee1.getVariance(200, "adaptiveGrid") << " pce variance" << '\n';
   std::cout << ee1.evalExpansion(evalVec, 200, "adaptiveGrid") << " pce eval" << '\n';
@@ -67,7 +67,7 @@ int main() {
             << '\n';
   sgpp::optimization::SplineResponseSurface surface2(e1, lb, ub,
                                                      sgpp::base::GridType::NakBsplineExtended);
-  surface2.surplusAdaptive(600, 1);
+  surface2.surplusAdaptive(1200, 1);
   std::cout << surface2.eval(evalVec) << ' ';
   std::cout << "surface eval" << '\n';
   std::cout << surface2.getIntegral() << ' ';

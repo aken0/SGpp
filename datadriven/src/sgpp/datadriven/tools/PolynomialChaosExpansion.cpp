@@ -114,28 +114,14 @@ PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const ba
     return f(temp);
   };
   // order:hermite,jacobi,legendre,laguerre,genlaguerre
-  /*
-  this->weights = std::vector<std::function<double(double, size_t)>>{
-      {[](double x, size_t i) { return std::exp(-std::pow(x, 2) / 2); }},
-      {[this](double x, size_t i) -> double {
-        return std::pow((1.0 - x), this->alpha[i]) * std::pow((1.0 + x), this->beta[i]);
-      }},
-      {[](double x, size_t i) { return 1.0; }},
-      {[](double x, size_t i) { return std::exp(-x); }},
-      {[this](double x, size_t i) -> double {
-        return std::pow(x, this->alpha[i]) * std::exp(-x);
-      }}};
-      */
   this->denoms = std::vector<std::function<double(double, size_t)>>{
       {[](double j, size_t i) { return std::tgamma(j + 1.0); }},
       {[this](double j, size_t i) {
-        return (std::pow(2.0, this->alpha[i] + this->beta[i] + 1.0) /
-                (2.0 * j + this->alpha[i] + this->beta[i] + 1.0)) *
+        return (1.0 / (2.0 * j + this->alpha[i] + this->beta[i] + 1.0)) *
                ((std::tgamma(j + this->alpha[i] + 1.0) * std::tgamma(j + this->beta[i] + 1.0)) /
                 (std::tgamma(j + this->alpha[i] + this->beta[i] + 1.0) * std::tgamma(j + 1.0))) /
-               (std::pow(2, this->alpha[i] + this->beta[i] + 1) *
-                ((std::tgamma(this->alpha[i] + 1) * std::tgamma(this->beta[i] + 1)) /
-                 std::tgamma(this->alpha[i] + this->beta[i] + 2)));
+               ((std::tgamma(this->alpha[i] + 1) * std::tgamma(this->beta[i] + 1)) /
+                std::tgamma(this->alpha[i] + this->beta[i] + 2));
       }},
       {[](double j, size_t i) { return 1.0 / ((2.0 * j) + 1.0); }},
       {[](double j, size_t i) { return 1.0; }},
@@ -143,7 +129,6 @@ PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const ba
         return (std::tgamma(j + this->alpha[i] + 1.0) /
                 (std::tgamma(j + 1.0) * std::tgamma(this->alpha[i] + 1.0)));
       }}};
-
   this->evals = std::vector<std::function<double(double, double, size_t)>>{
       {[this](int n, double x, size_t i) { return evalHermite(n, x); }},
       {[this](int n, double x, size_t i) { return evalJacobi(n, x, i); }},
@@ -278,7 +263,7 @@ double PolynomialChaosExpansion::monteCarloQuad(
 }
 
 void PolynomialChaosExpansion::printGrid(int dim, int n, std::string tFilename) {
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 3));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 1));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   int i = 0;
   while (gridStorage.getSize() < n) {
@@ -311,15 +296,11 @@ void PolynomialChaosExpansion::printAdaptiveGrid(
     }
     return funct(temp);
   };
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 3));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 1));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   grid->getGenerator().regular(2);
 
   base::DataVector coeffs(gridStorage.getSize());
-  /**
-   * Create a vector for storing (possibly expensive) function evaluations at
-   * each gridpoint.
-   */
   base::DataVector funEvals(gridStorage.getSize());
   for (size_t i = 0; i < gridStorage.getSize(); i++) {
     base::GridPoint& gp = gridStorage.getPoint(i);
@@ -329,10 +310,6 @@ void PolynomialChaosExpansion::printAdaptiveGrid(
     }
     funEvals[i] = numfunc(vec, ranges);
   }
-
-  /**
-   * create a vector for storing newly added points by their sequence id.
-   */
   std::vector<size_t> addedPoints;
 
   /**
@@ -346,14 +323,8 @@ void PolynomialChaosExpansion::printAdaptiveGrid(
      */
     base::SurplusRefinementFunctor functor(coeffs, 10);
     grid->getGenerator().refine(functor, &addedPoints);
-
     coeffs.resize(gridStorage.getSize());
     funEvals.resize(gridStorage.getSize());
-
-    /**
-     * Evaluate the function f at the newly created gridpoints and set the
-     * corresponding entries in the funEval vector with these values.
-     */
     for (size_t i = 0; i < addedPoints.size(); i++) {
       size_t seq = addedPoints[i];
       base::GridPoint& gp = gridStorage.getPoint(seq);
@@ -404,8 +375,7 @@ void PolynomialChaosExpansion::printAdaptiveGrid(
 }
 
 double PolynomialChaosExpansion::sparseGridQuadrature(
-    const std::function<double(const base::DataVector&)>& funct, int dim, int n,
-    size_t quadOrder /*,int level*/) {
+    const std::function<double(const base::DataVector&)>& funct, int dim, int n, size_t quadOrder) {
   auto numfunc = [&funct](const base::DataVector& input,
                           const std::vector<std::pair<double, double>>& ranges) {
     base::DataVector temp(input.size());
@@ -414,7 +384,7 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
     }
     return funct(temp);
   };
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 3));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 1));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   int i = 0;
   while (gridStorage.getSize() < n) {
@@ -422,13 +392,6 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
     grid->getGenerator().regular(i);
     ++i;
   }
-  /**
-   * Calculate the surplus vector for the interpolant of \f$
-   * f(x)\f$.  Since the function can be evaluated at any
-   * point. Hence. we simply evaluate it at the coordinates of the
-   * grid points to obtain the nodal values. Then we use
-   * hierarchization to obtain the surplus value.
-   */
   sgpp::base::DataVector evals(gridStorage.getSize());
   base::DataVector p(dim);
   for (size_t i = 0; i < gridStorage.getSize(); i++) {
@@ -462,23 +425,12 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
     evals = coeffs;
   }
 
-  /*
-  std::unique_ptr<sgpp::base::OperationQuadrature> opQ(
-      sgpp::op_factory::createOperationQuadrature(*grid));
-  double res = opQ->doQuadrature(evals);
-
-  double prod = 1;
-  for (auto pair : ranges) {
-    prod *= (pair.second - pair.first);
-  }
-  return res * prod;
-  */
   std::unique_ptr<sgpp::base::OperationWeightedQuadrature> opWQ(
       sgpp::op_factory::createOperationWeightedQuadrature(*grid, quadOrder));
   double res = opWQ->doWeightedQuadrature(coeffs, standardvec);
-  return res /** prod*/;
+  return res;
 }
-
+/*
 double PolynomialChaosExpansion::adaptiveQuadrature(
     const std::function<double(const base::DataVector&)>& funct, int dim, size_t n) {
   auto numfunc = [&funct](const base::DataVector& input,
@@ -490,15 +442,11 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
     return funct(temp);
   };
 
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 3));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 1));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   grid->getGenerator().regular(2);
 
   base::DataVector coeffs(gridStorage.getSize());
-  /**
-   * Create a vector for storing (possibly expensive) function evaluations at
-   * each gridpoint.
-   */
   base::DataVector funEvals(gridStorage.getSize());
   for (size_t i = 0; i < gridStorage.getSize(); i++) {
     base::GridPoint& gp = gridStorage.getPoint(i);
@@ -509,25 +457,13 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
     funEvals[i] = numfunc(vec, ranges);
   }
   std::vector<size_t> addedPoints;
-  /**
-   * Refine adaptively until number of points is reached.
-   */
   while (gridStorage.getSize() < n) {
-    /**
-     * The SurplusRefinementFunctor chooses the grid point with the highest absolute surplus.
-     * Refining the point means, that all children of this point (if not already present) are
-     * added to the grid. Also all missing parents are added (recursively).
-     */
     base::SurplusRefinementFunctor functor(coeffs, 10);
     grid->getGenerator().refine(functor, &addedPoints);
 
     coeffs.resize(gridStorage.getSize());
     funEvals.resize(gridStorage.getSize());
 
-    /**
-     * Evaluate the function f at the newly created gridpoints and set the
-     * corresponding entries in the funEval vector with these values.
-     */
     for (size_t i = 0; i < addedPoints.size(); i++) {
       size_t seq = addedPoints[i];
       base::GridPoint& gp = gridStorage.getPoint(seq);
@@ -572,7 +508,7 @@ double PolynomialChaosExpansion::adaptiveQuadrature(
   double res = opQ->doQuadrature(coeffs);
   return res * prod;
 }
-
+*/
 double PolynomialChaosExpansion::adaptiveQuadratureWeighted(
     const std::function<double(const base::DataVector&)>& funct, int dim, size_t n,
     size_t quadOrder) {
@@ -585,15 +521,11 @@ double PolynomialChaosExpansion::adaptiveQuadratureWeighted(
     return funct(temp);
   };
 
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 3));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 1));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   grid->getGenerator().regular(2);
 
   base::DataVector coeffs(gridStorage.getSize());
-  /**
-   * Create a vector for storing (possibly expensive) function evaluations at
-   * each gridpoint.
-   */
   base::DataVector funEvals(gridStorage.getSize());
   for (size_t i = 0; i < gridStorage.getSize(); i++) {
     base::GridPoint& gp = gridStorage.getPoint(i);
@@ -619,10 +551,6 @@ double PolynomialChaosExpansion::adaptiveQuadratureWeighted(
     coeffs.resize(gridStorage.getSize());
     funEvals.resize(gridStorage.getSize());
 
-    /**
-     * Evaluate the function f at the newly created gridpoints and set the
-     * corresponding entries in the funEval vector with these values.
-     */
     for (size_t i = 0; i < addedPoints.size(); i++) {
       size_t seq = addedPoints[i];
       base::GridPoint& gp = gridStorage.getPoint(seq);
@@ -658,14 +586,10 @@ double PolynomialChaosExpansion::adaptiveQuadratureWeighted(
     }
     addedPoints.clear();
   }
-  double prod = 1;
-  for (auto pair : ranges) {
-    prod *= (pair.second - pair.first);
-  }
   std::unique_ptr<sgpp::base::OperationWeightedQuadrature> opWQ(
       sgpp::op_factory::createOperationWeightedQuadrature(*grid, quadOrder));
   double res = opWQ->doWeightedQuadrature(coeffs, standardvec);
-  return res /** prod*/;
+  return res;
 }
 double PolynomialChaosExpansion::sparseGridQuadratureL2(
     const std::function<double(const base::DataVector&)>& funct, int dim, int n /*,int level*/) {
@@ -677,7 +601,7 @@ double PolynomialChaosExpansion::sparseGridQuadratureL2(
     }
     return funct(temp);
   };
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 3));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 1));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
 
   int i = 0;
@@ -686,15 +610,6 @@ double PolynomialChaosExpansion::sparseGridQuadratureL2(
     grid->getGenerator().regular(i);
     ++i;
   }
-
-  /**
-   * Calculate the surplus vector for the interpolant of \f$
-   * f(x)\f$.  Since the function can be evaluated at any
-   * point. Hence. we simply evaluate it at the coordinates of the
-   * grid points to obtain the nodal values. Then we use
-   * hierarchization to obtain the surplus value.
-   *
-   */
   sgpp::base::DataVector evals(gridStorage.getSize());
   base::DataVector p(dim);
   for (size_t i = 0; i < gridStorage.getSize(); i++) {
@@ -759,7 +674,7 @@ double PolynomialChaosExpansion::adaptiveQuadratureL2(
     return funct(temp);
   };
 
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 3));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 1));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   grid->getGenerator().regular(2);
 
@@ -791,11 +706,6 @@ double PolynomialChaosExpansion::adaptiveQuadratureL2(
 
     coeffs.resize(gridStorage.getSize());
     funEvals.resize(gridStorage.getSize());
-
-    /**
-     * Evaluate the function f at the newly created gridpoints and set the
-     * corresponding entries in the funEval vector with these values.
-     */
     for (size_t i = 0; i < addedPoints.size(); i++) {
       size_t seq = addedPoints[i];
       base::GridPoint& gp = gridStorage.getPoint(seq);
@@ -894,11 +804,6 @@ base::DataVector PolynomialChaosExpansion::calculateCoefficients(int n, std::str
       for (base::DataVector::size_type i = 0; i < vec.getSize(); ++i) {
         prd *= evals[static_cast<int>(types[i])](index[j][i], vec[i], i);
       }
-      /*
-      for (base::DataVector::size_type i = 0; i < vec.getSize(); ++i) {
-        weightprd *= weights[static_cast<int>(types[i])](vec[i], i);
-      }
-      */
       return prd * weightprd;
     };
     auto intfunc = [this, &numfunc](const base::DataVector& vec) {
@@ -909,8 +814,6 @@ base::DataVector PolynomialChaosExpansion::calculateCoefficients(int n, std::str
       num = monteCarloQuad(intfunc, n);
     } else if (method == "sparseGrid") {
       num = sparseGridQuadrature(intfunc, static_cast<int>(types.size()), n, 100);
-    } else if (method == "adaptiveGrid") {
-      num = adaptiveQuadrature(intfunc, static_cast<int>(types.size()), n);
     } else if (method == "adaptiveWeighted") {
       num = adaptiveQuadratureWeighted(intfunc, static_cast<int>(types.size()), n, 100);
     }
@@ -919,7 +822,7 @@ base::DataVector PolynomialChaosExpansion::calculateCoefficients(int n, std::str
     for (std::vector<distributionType>::size_type i = 0; i < types.size(); ++i) {
       denom *= denoms[static_cast<int>(types[i])](index[j][i], i);
     }
-    std::cout << "j: " << j << " ,numerator: " << num << " ,denominator: " << denom << '\n';
+    // std::cout << "j: " << j << " ,numerator: " << num << " ,denominator: " << denom << '\n';
     double aj = num / denom;
     result[j] = aj;
   }
@@ -962,7 +865,7 @@ double PolynomialChaosExpansion::evalExpansion(const base::DataVector& xi, int n
   for (std::vector<std::vector<int>>::size_type j = 0; j < index.size(); ++j) {
     double prod = 1.0;
     for (std::vector<int>::size_type i = 0; i < index[j].size(); ++i) {
-      prod *= evals[static_cast<int>(types[i])](index[j][i], temp[i], i);  // maybe use temp
+      prod *= evals[static_cast<int>(types[i])](index[j][i], temp[i], i);
     }
     sum += prod * coefficients[j];
   }
@@ -1008,7 +911,6 @@ double PolynomialChaosExpansion::getMean(int n, std::string method) {
   }
   return coefficients[0];
 }
-// TODO fix jacobi
 double PolynomialChaosExpansion::getVariance(int n, std::string method) {
   if (coefficients.empty()) {
     calculateCoefficients(n, method);
@@ -1018,12 +920,10 @@ double PolynomialChaosExpansion::getVariance(int n, std::string method) {
       {[](double j, size_t i) { return std::sqrt(std::tgamma(j + 1.0)); }},
       {[this](double j, size_t i) {
         return std::sqrt(
-            (std::pow(2.0, this->alpha[i] + this->beta[i] + 1.0) /
-             (2.0 * j + this->alpha[i] + this->beta[i] + 1.0)) *
+            (1.0 / (2.0 * j + this->alpha[i] + this->beta[i] + 1.0)) *
             ((std::tgamma(j + this->alpha[i] + 1.0) * std::tgamma(j + this->beta[i] + 1.0)) /
              (std::tgamma(j + this->alpha[i] + this->beta[i] + 1.0) * std::tgamma(j + 1.0))) /
-            (std::pow(2, this->alpha[i] + this->beta[i] + 1) *
-             ((std::tgamma(this->alpha[i] + 1) * std::tgamma(this->beta[i] + 1)) /
+            (((std::tgamma(this->alpha[i] + 1) * std::tgamma(this->beta[i] + 1)) /
               std::tgamma(this->alpha[i] + this->beta[i] + 2))));
       }},
       {[](double j, size_t i) { return std::sqrt(1.0 / ((2.0 * j) + 1.0)); }},

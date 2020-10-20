@@ -52,8 +52,10 @@ class PolynomialChaosExpansion {
                         const size_t& n);
   double sparseGridQuadrature(const std::function<double(const base::DataVector&)>& funct, int dim,
                               int n, size_t quadOrder /*,int level*/);
+  /*
   double adaptiveQuadrature(const std::function<double(const base::DataVector&)>& funct, int dim,
                             size_t n);
+                            */
   double adaptiveQuadratureWeighted(const std::function<double(const base::DataVector&)>& funct,
                                     int dim, size_t n, size_t quadOrder);
   double sparseGridQuadratureL2(const std::function<double(const base::DataVector&)>& funct,
