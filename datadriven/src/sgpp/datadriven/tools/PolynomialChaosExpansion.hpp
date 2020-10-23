@@ -37,13 +37,18 @@ class PolynomialChaosExpansion {
   std::vector<std::function<double(double, size_t)>> weights;
   std::vector<std::function<double(double, size_t)>> denoms;
   std::vector<std::function<double(double, double, size_t)>> evals;
+  std::vector<std::vector<int>> multiIndex(int dimension, int order);
   // multiple functions should be moved to private and are just here for debugging
  public:
+  /*
+   *constructs a PCE using total-order expansion for the given function, expansion order and
+   *underlying distributions
+   */
   PolynomialChaosExpansion(std::function<double(const base::DataVector&)> func, int order,
                            sgpp::base::DistributionsVector distributions);
+
   ~PolynomialChaosExpansion();
 
-  std::vector<std::vector<int>> multiIndex(int dimension, int order);
   void printGrid(int dim, int n, std::string tFilename);
 
   void printAdaptiveGrid(std::function<double(const base::DataVector&)> funct, int dim, size_t n,
@@ -52,22 +57,38 @@ class PolynomialChaosExpansion {
                         const size_t& n);
   double sparseGridQuadrature(const std::function<double(const base::DataVector&)>& funct, int dim,
                               int n, size_t quadOrder /*,int level*/);
-  /*
-  double adaptiveQuadrature(const std::function<double(const base::DataVector&)>& funct, int dim,
-                            size_t n);
-                            */
   double adaptiveQuadratureWeighted(const std::function<double(const base::DataVector&)>& funct,
                                     int dim, size_t n, size_t quadOrder);
   double sparseGridQuadratureL2(const std::function<double(const base::DataVector&)>& funct,
                                 int dim, int n /*,int level*/);
   double adaptiveQuadratureL2(const std::function<double(const base::DataVector&)>& funct, int dim,
                               size_t n);
+
+  /*
+   * calculates the coefficients using n points and the given method
+   */
   base::DataVector calculateCoefficients(int n, std::string method);
+  /*
+   * returns the calculated coefficients
+   */
   base::DataVector getCoefficients();
+
   void clearCoefficients();
+  /*
+   * evaluates the PCE at the given point
+   */
   double evalExpansion(const base::DataVector& xi, int n, std::string method);
+  /*
+   * retrns the mean of the expansion
+   */
   double getMean(int n, std::string method);
+  /*
+   * returns the variance of the expansion
+   */
   double getVariance(int n, std::string method);
+  /*
+   * returns the L2 approximation error of the expansion
+   */
   double getL2Error(int n, std::string method);
 };
 }  // namespace datadriven
