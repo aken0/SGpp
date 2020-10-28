@@ -28,7 +28,7 @@ int main() {
   dists.push_back(dist1);
   dists.push_back(dist2);
   sgpp::datadriven::PolynomialChaosExpansion ee =
-      sgpp::datadriven::PolynomialChaosExpansion(e, 3, dists);
+      sgpp::datadriven::PolynomialChaosExpansion(e, 1, dists);
   std::fstream of;
   std::string path;
   std::cout << "enter path: " << '\n';
@@ -55,16 +55,16 @@ int main() {
     of << re << ',';
   }
 
-  ee.printAdaptiveGrid(e, dim, 500, "plot_pce/" + path + "(e-level5).txt");
+  ee.printAdaptiveGrid(e, dim, 600, "plot_pce/" + path + "(e-level5).txt");
   // ee.printGrid(dim, 200, "plot_pce/" + path + "(e-level5).txt");
-  ee.printAdaptiveGrid(f, dim, 500, "plot_pce/" + path + "(f-level5).txt");
+  ee.printAdaptiveGrid(f, dim, 600, "plot_pce/" + path + "(f-level5).txt");
   std::cout << "f" << '\n';
   of << '\n';
   for (int i = 50; i <= points; i *= 1.5) {
     auto re = ee.adaptiveQuadratureWeighted(g, dim, i, 100);
     of << re << ',';
   }
-  ee.printAdaptiveGrid(g, dim, 500, "plot_pce/" + path + "(g-level5).txt");
+  ee.printAdaptiveGrid(g, dim, 600, "plot_pce/" + path + "(g-level5).txt");
   std::cout << "g" << '\n';
   of << '\n';
   for (int i = 50; i <= points; i *= 1.5) {
