@@ -12,8 +12,8 @@
 #include <vector>
 // functions to be integrated
 double e(const sgpp::base::DataVector& vec) {
-  return /*sin(vec[0]) + 3 * vec[0] * pow(sin(vec[1]), 3) +*/
-      5 * exp(-100 * (pow(vec[0] - 0.3, 2) + pow(vec[1] - 0.3, 2)));
+  return sin(vec[0]) + 3 * vec[0] * pow(sin(vec[1]), 3) +
+         5 * exp(-100 * (pow(vec[0] - 0.3, 2) + pow(vec[1] - 0.3, 2)));
 }
 double f(const sgpp::base::DataVector& vec) { return 1.0; }
 double g(const sgpp::base::DataVector& vec) {
