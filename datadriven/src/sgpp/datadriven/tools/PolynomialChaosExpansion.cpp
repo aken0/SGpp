@@ -38,8 +38,8 @@ PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const ba
     auto characteristics = distributions.get(i)->getCharacteristics();
     if (distributions.get(i)->getType() == sgpp::base::DistributionType::Normal) {
       types[i] = sgpp::datadriven::distributionType::Normal;
-      ranges[i].first = -9;
-      ranges[i].second = 9;
+      ranges[i].first = -.9;
+      ranges[i].second = .9;
       auto dist1 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
       standardvec.push_back(dist1);
     } else if (distributions.get(i)->getType() == sgpp::base::DistributionType::TruncNormal) {
