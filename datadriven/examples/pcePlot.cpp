@@ -55,8 +55,8 @@ int main() {
     of << re << ',';
   }
 
-  // ee.printAdaptiveGrid(e, dim, 250, "plot_pce/" + path + "(e-level5).txt");
-  ee.printGrid(dim, 250, "plot_pce/" + path + "(e-level5).txt");
+  ee.printAdaptiveGrid(e, dim, 250, "plot_pce/" + path + "(e-level5).txt");
+  // ee.printGrid(dim, 250, "plot_pce/" + path + "(e-level5).txt");
   ee.printAdaptiveGrid(f, dim, 250, "plot_pce/" + path + "(f-level5).txt");
   std::cout << "f" << '\n';
   of << '\n';
@@ -64,8 +64,8 @@ int main() {
     auto re = ee.adaptiveQuadratureWeighted(g, dim, i, 100);
     of << re << ',';
   }
-  // ee.printAdaptiveGrid(g, dim, 250, "plot_pce/" + path + "(g-level5).txt");
-  ee.printGrid(dim, 250, "plot_pce/" + path + "(g-level5).txt");
+  ee.printAdaptiveGrid(g, dim, 250, "plot_pce/" + path + "(g-level5).txt");
+  // ee.printGrid(dim, 250, "plot_pce/" + path + "(g-level5).txt");
   std::cout << "g" << '\n';
   of << '\n';
   for (int i = 50; i <= points; i *= 1.5) {
