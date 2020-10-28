@@ -12,19 +12,19 @@
 #include <vector>
 // functions to be integrated
 double e(const sgpp::base::DataVector& vec) {
-  return sin(vec[0]) + pow(sin(vec[1]), 3) +
+  return sin(vec[0]) + 3 * vec[0] * pow(sin(vec[1]), 3) +
          5 * exp(-100 * (pow(vec[0] - 0.1, 2) + pow(vec[1], 2)));
 }
 double f(const sgpp::base::DataVector& vec) { return 1.0; }
 double g(const sgpp::base::DataVector& vec) {
   // return 1 + (std::sin(vec[0]) + std::cos(vec[1])) / std::exp(vec[1]);
-  return sin(vec[0]) + pow(sin(vec[1]), 3);
+  return sin(vec[0]) + 3 * vec[0] * pow(sin(vec[1]), 3);
   // return std::exp(-200 * (std::pow(vec[0] - 0.8, 2) + std::pow(vec[1] - 0.8, 2)));
 }
 int main() {
   sgpp::base::DistributionsVector dists;
-  auto dist1 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
-  auto dist2 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+  auto dist1 = std::make_shared<sgpp::base::DistributionNormal>(0, .1);
+  auto dist2 = std::make_shared<sgpp::base::DistributionNormal>(0, .1);
   dists.push_back(dist1);
   dists.push_back(dist2);
   sgpp::datadriven::PolynomialChaosExpansion ee =
@@ -36,7 +36,7 @@ int main() {
   of.open("plot_pce/" + path + ".txt", std::ios::out | std::ios::trunc);
   of << std::fixed;
   of << std::setprecision(std::numeric_limits<double>::digits10 + 1);
-  int points = 200;
+  int points = 20;
   int dim = 2;
   ee.printGrid(dim, 1, "plot_pce/" + path + "(base-level5).txt");
   std::cout << "base" << '\n';
@@ -55,16 +55,16 @@ int main() {
     of << re << ',';
   }
 
-  ee.printAdaptiveGrid(e, dim, 200, "plot_pce/" + path + "(e-level5).txt");
+  ee.printAdaptiveGrid(e, dim, 500, "plot_pce/" + path + "(e-level5).txt");
   // ee.printGrid(dim, 200, "plot_pce/" + path + "(e-level5).txt");
-  ee.printAdaptiveGrid(f, dim, 200, "plot_pce/" + path + "(f-level5).txt");
+  ee.printAdaptiveGrid(f, dim, 500, "plot_pce/" + path + "(f-level5).txt");
   std::cout << "f" << '\n';
   of << '\n';
   for (int i = 50; i <= points; i *= 1.5) {
     auto re = ee.adaptiveQuadratureWeighted(g, dim, i, 100);
     of << re << ',';
   }
-  ee.printAdaptiveGrid(g, dim, 200, "plot_pce/" + path + "(g-level5).txt");
+  ee.printAdaptiveGrid(g, dim, 500, "plot_pce/" + path + "(g-level5).txt");
   std::cout << "g" << '\n';
   of << '\n';
   for (int i = 50; i <= points; i *= 1.5) {

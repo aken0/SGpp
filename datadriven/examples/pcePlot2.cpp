@@ -19,7 +19,7 @@ double e(const sgpp::base::DataVector& vec) {
   // return 1 - ((4 * vec[1]) / (5 * 225 * vec[0])) -
   //      ((vec[2] * vec[2]) / (25 * 225 * vec[0] * vec[0]));
   // return 0.05 * pow(vec[0] - 2, 2) + 2 * pow(vec[1] + 1, 1);
-  return sin(vec[0]) + pow(sin(vec[1]), 3) +
+  return sin(vec[0]) + 3 * vec[0] * pow(sin(vec[1]), 3) +
          5 * exp(-100 * (pow(vec[0] - 0.1, 2) + pow(vec[1], 2)));
 }
 int main() {
