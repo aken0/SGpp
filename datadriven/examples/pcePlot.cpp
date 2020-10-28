@@ -12,8 +12,8 @@
 #include <vector>
 // functions to be integrated
 double e(const sgpp::base::DataVector& vec) {
-  return sin(vec[0]) + 3 * vec[0] * pow(sin(vec[1]), 3) +
-         5 * exp(-100 * (pow(vec[0] - 0.3, 2) + pow(vec[1] - 0.3, 2)));
+  return /*sin(vec[0]) + 3 * vec[0] * pow(sin(vec[1]), 3) +*/
+      5 * exp(-100 * (pow(vec[0] - 0.3, 2) + pow(vec[1] - 0.3, 2)));
 }
 double f(const sgpp::base::DataVector& vec) { return 1.0; }
 double g(const sgpp::base::DataVector& vec) {
@@ -23,12 +23,12 @@ double g(const sgpp::base::DataVector& vec) {
 }
 int main() {
   sgpp::base::DistributionsVector dists;
-  auto dist1 = std::make_shared<sgpp::base::DistributionNormal>(0, .1);
-  auto dist2 = std::make_shared<sgpp::base::DistributionNormal>(0, .1);
+  auto dist1 = std::make_shared<sgpp::base::DistributionNormal>(0, .2);
+  auto dist2 = std::make_shared<sgpp::base::DistributionNormal>(0, .2);
   dists.push_back(dist1);
   dists.push_back(dist2);
   sgpp::datadriven::PolynomialChaosExpansion ee =
-      sgpp::datadriven::PolynomialChaosExpansion(e, 5, dists);
+      sgpp::datadriven::PolynomialChaosExpansion(e, 3, dists);
   std::fstream of;
   std::string path;
   std::cout << "enter path: " << '\n';
