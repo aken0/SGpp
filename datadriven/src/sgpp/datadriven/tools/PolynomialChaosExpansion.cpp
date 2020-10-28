@@ -355,6 +355,7 @@ void PolynomialChaosExpansion::printAdaptiveGrid(
 
       // solve linear system
       if (!sleSolver.solve(hierSLE, funEvals, coeffs)) {
+        std::cout << "Solving failed" << '\n';
         return;
       }
     }
