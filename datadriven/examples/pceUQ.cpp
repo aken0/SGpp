@@ -33,9 +33,9 @@ int main() {
   std::fstream of;
   of.open("plot_pce/stochasticTest.txt", std::ios::out | std::ios::trunc);
   of << std::fixed;
-  of << std::setprecision(9);
+  of << std::setprecision(14);
   std::cout << std::fixed;
-  std::cout << std::setprecision(9);
+  std::cout << std::setprecision(14);
   sgpp::base::DistributionsVector dists;
   int dim = 3;
   // sgpp::base::DataVector lb{exp(.5), -1600, -400};
@@ -54,7 +54,7 @@ int main() {
             << '\n';
   sgpp::datadriven::PolynomialChaosExpansion ee1 =
       sgpp::datadriven::PolynomialChaosExpansion(e, 3, dists);
-  std::cout << ee1.getL2Error(1000, "adaptiveWeighted") << " pce L2" << '\n';
+  std::cout << ee1.getL2Error(2000, "adaptiveWeighted") << " pce L2" << '\n';
   std::cout << ee1.getMean(600, "adaptiveGrid") << " pce mean" << '\n';
   std::cout << ee1.getVariance(200, "adaptiveGrid") << " pce variance" << '\n';
   std::cout << ee1.evalExpansion(evalVec, 200, "adaptiveGrid") << " pce eval" << '\n';
@@ -65,7 +65,7 @@ int main() {
   std::cout << '\n';
   sgpp::optimization::SplineResponseSurface surface2(e1, lb, ub,
                                                      sgpp::base::GridType::NakBsplineExtended);
-  surface2.surplusAdaptive(1000, 3);
+  surface2.surplusAdaptive(2000, 2);
   std::cout << surface2.eval(evalVec) << ' ';
   std::cout << "surface eval" << '\n';
   std::cout << surface2.getIntegral() << ' ';

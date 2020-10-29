@@ -355,7 +355,6 @@ void PolynomialChaosExpansion::printAdaptiveGrid(
 
       // solve linear system
       if (!sleSolver.solve(hierSLE, funEvals, coeffs)) {
-        std::cout << "Solving failed" << '\n';
         return;
       }
     }
@@ -823,7 +822,6 @@ base::DataVector PolynomialChaosExpansion::calculateCoefficients(int n, std::str
     for (std::vector<distributionType>::size_type i = 0; i < types.size(); ++i) {
       denom *= denoms[static_cast<int>(types[i])](index[j][i], i);
     }
-    // std::cout << "j: " << j << " ,numerator: " << num << " ,denominator: " << denom << '\n';
     double aj = num / denom;
     result[j] = aj;
   }
