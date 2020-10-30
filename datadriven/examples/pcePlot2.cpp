@@ -38,8 +38,8 @@ int main() {
     auto dist3 = std::make_shared<sgpp::base::DistributionNormal>(500, 100);
     */
 
-  auto dist1 = std::make_shared<sgpp::base::DistributionNormal>(0, .2);
-  auto dist2 = std::make_shared<sgpp::base::DistributionNormal>(0, .2);
+  auto dist1 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+  auto dist2 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
   /*
   auto dist1 = std::make_shared<sgpp::base::DistributionNormal>(0.1, .0161812);
   auto dist2 = std::make_shared<sgpp::base::DistributionLogNormal>(7.71, 1.0056);
