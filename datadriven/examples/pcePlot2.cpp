@@ -19,7 +19,7 @@ double e(const sgpp::base::DataVector& vec) {
   // return 1 - ((4 * vec[1]) / (5 * 225 * vec[0])) -
   //      ((vec[2] * vec[2]) / (25 * 225 * vec[0] * vec[0]));
   // return 0.05 * pow(vec[0] - 2, 2) + 2 * pow(vec[1] + 1, 1);
-  return 5 * exp(-100 * (pow(vec[0] - 0.3, 2) + pow(vec[1] - 0.3, 2)));
+  return 5 * exp(-100 * (pow(vec[0], 2) + pow(vec[1], 2)));
   // return sin(vec[0]) + 3 * vec[0] * pow(sin(vec[1]), 3) +
   // 5 * exp(-100 * (pow(vec[0] - 0.2, 2) + pow(vec[1] - 0.2, 2)));
 
@@ -38,8 +38,8 @@ int main() {
     auto dist3 = std::make_shared<sgpp::base::DistributionNormal>(500, 100);
     */
 
-  auto dist1 = std::make_shared<sgpp::base::DistributionNormal>(.3, .1);
-  auto dist2 = std::make_shared<sgpp::base::DistributionNormal>(.3, .1);
+  auto dist1 = std::make_shared<sgpp::base::DistributionNormal>(0, .2);
+  auto dist2 = std::make_shared<sgpp::base::DistributionNormal>(0, .2);
   /*
   auto dist1 = std::make_shared<sgpp::base::DistributionNormal>(0.1, .0161812);
   auto dist2 = std::make_shared<sgpp::base::DistributionLogNormal>(7.71, 1.0056);
