@@ -142,7 +142,7 @@ int main() {
   for (int i : gridPoints) {
     auto e1 = std::make_shared<Functe>(dim);
     sgpp::optimization::SplineResponseSurface surface(e1, lb, ub,
-                                                      sgpp::base::GridType::NakBsplineExtended, 1);
+                                                      sgpp::base::GridType::NakBsplineExtended, 5);
     surface.regularByPoints(i);
     auto gen = [&dists, &surface]() {
       sgpp::base::DataVector randvec = dists.sample();
@@ -158,7 +158,7 @@ int main() {
   for (int i : gridPoints) {
     auto e1 = std::make_shared<Functe>(dim);
     sgpp::optimization::SplineResponseSurface surface(e1, lb, ub,
-                                                      sgpp::base::GridType::NakBsplineExtended, 1);
+                                                      sgpp::base::GridType::NakBsplineExtended, 5);
     surface.surplusAdaptive(i, 1);
     auto gen = [&dists, &surface]() {
       sgpp::base::DataVector randvec = dists.sample();
@@ -188,7 +188,7 @@ int main() {
   for (int i : gridPoints) {
     auto e1 = std::make_shared<Functe>(dim);
     sgpp::optimization::SplineResponseSurface surface(e1, lb, ub,
-                                                      sgpp::base::GridType::NakBsplineExtended, 1);
+                                                      sgpp::base::GridType::NakBsplineExtended, 5);
     surface.regularByPoints(i);
     of << surface.getMean(dists, 100) << ',';
   }
@@ -197,7 +197,7 @@ int main() {
   for (int i : gridPoints) {
     auto e1 = std::make_shared<Functe>(dim);
     sgpp::optimization::SplineResponseSurface surface(e1, lb, ub,
-                                                      sgpp::base::GridType::NakBsplineExtended, 1);
+                                                      sgpp::base::GridType::NakBsplineExtended, 5);
     surface.surplusAdaptive(i, 1);
     of << surface.getMean(dists, 100) << ',';
   }
@@ -220,7 +220,7 @@ int main() {
   for (int i : gridPoints) {
     auto e1 = std::make_shared<Functe>(dim);
     sgpp::optimization::SplineResponseSurface surface(e1, lb, ub,
-                                                      sgpp::base::GridType::NakBsplineExtended, 1);
+                                                      sgpp::base::GridType::NakBsplineExtended, 5);
     surface.regularByPoints(i);
     of << surface.getVariance(dists, 100)[0] << ',';
   }
@@ -229,7 +229,7 @@ int main() {
   for (int i : gridPoints) {
     auto e1 = std::make_shared<Functe>(dim);
     sgpp::optimization::SplineResponseSurface surface(e1, lb, ub,
-                                                      sgpp::base::GridType::NakBsplineExtended, 1);
+                                                      sgpp::base::GridType::NakBsplineExtended, 5);
     surface.surplusAdaptive(i, 1);
     of << surface.getVariance(dists, 100)[0] << ',';
   }
