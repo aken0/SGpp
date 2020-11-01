@@ -38,7 +38,7 @@ class PolynomialChaosExpansion {
   std::vector<std::function<double(double, size_t)>> denoms;
   std::vector<std::function<double(double, double, size_t)>> evals;
   std::vector<std::vector<int>> multiIndex(int dimension, int order);
-  // multiple functions should be moved to private and are just here for debugging
+  // multiple functions should be moved to private and are just here for debugging/plots
  public:
   /*
    *constructs a PCE using total-order expansion for the given function, expansion order and
@@ -56,11 +56,11 @@ class PolynomialChaosExpansion {
   double monteCarloQuad(const std::function<double(const base::DataVector&)>& funct,
                         const size_t& n);
   double sparseGridQuadrature(const std::function<double(const base::DataVector&)>& funct, int dim,
-                              int n, size_t quadOrder /*,int level*/);
+                              int n, size_t quadOrder);
   double adaptiveQuadratureWeighted(const std::function<double(const base::DataVector&)>& funct,
                                     int dim, size_t n, size_t quadOrder);
   double sparseGridQuadratureL2(const std::function<double(const base::DataVector&)>& funct,
-                                int dim, int n /*,int level*/);
+                                int dim, int n);
   double adaptiveQuadratureL2(const std::function<double(const base::DataVector&)>& funct, int dim,
                               size_t n);
 

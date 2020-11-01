@@ -316,11 +316,6 @@ void PolynomialChaosExpansion::printAdaptiveGrid(
    * Refine adaptively until number of points is reached.
    */
   while (gridStorage.getSize() < n) {
-    /**
-     * The SurplusRefinementFunctor chooses the grid point with the highest absolute surplus.
-     * Refining the point means, that all children of this point (if not already present) are
-     * added to the grid. Also all missing parents are added (recursively).
-     */
     base::SurplusRefinementFunctor functor(coeffs, 10);
     grid->getGenerator().refine(functor, &addedPoints);
     coeffs.resize(gridStorage.getSize());
@@ -430,85 +425,6 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
   double res = opWQ->doWeightedQuadrature(coeffs, standardvec);
   return res;
 }
-/*
-double PolynomialChaosExpansion::adaptiveQuadrature(
-    const std::function<double(const base::DataVector&)>& funct, int dim, size_t n) {
-  auto numfunc = [&funct](const base::DataVector& input,
-                          const std::vector<std::pair<double, double>>& ranges) {
-    base::DataVector temp(input.size());
-    for (base::DataVector::size_type i = 0; i < ranges.size(); ++i) {
-      temp[i] = (input[i]) * (ranges[i].second - ranges[i].first) + ranges[i].first;
-    }
-    return funct(temp);
-  };
-
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 5));
-  sgpp::base::GridStorage& gridStorage = grid->getStorage();
-  grid->getGenerator().regular(2);
-
-  base::DataVector coeffs(gridStorage.getSize());
-  base::DataVector funEvals(gridStorage.getSize());
-  for (size_t i = 0; i < gridStorage.getSize(); i++) {
-    base::GridPoint& gp = gridStorage.getPoint(i);
-    base::DataVector vec(dim);
-    for (int j = 0; j < dim; ++j) {
-      vec[j] = gp.getStandardCoordinate(j);
-    }
-    funEvals[i] = numfunc(vec, ranges);
-  }
-  std::vector<size_t> addedPoints;
-  while (gridStorage.getSize() < n) {
-    base::SurplusRefinementFunctor functor(coeffs, 10);
-    grid->getGenerator().refine(functor, &addedPoints);
-
-    coeffs.resize(gridStorage.getSize());
-    funEvals.resize(gridStorage.getSize());
-
-    for (size_t i = 0; i < addedPoints.size(); i++) {
-      size_t seq = addedPoints[i];
-      base::GridPoint& gp = gridStorage.getPoint(seq);
-      base::DataVector vec(dim);
-      for (int j = 0; j < dim; ++j) {
-        vec[j] = gp.getStandardCoordinate(j);
-      }
-      funEvals[seq] = numfunc(vec, ranges);
-    }
-
-    coeffs.copyFrom(funEvals);
-
-    // try hierarchisation
-    bool succHierarch = false;
-
-    try {
-      std::unique_ptr<base::OperationHierarchisation>(
-          sgpp::op_factory::createOperationHierarchisation(*grid))
-          ->doHierarchisation(coeffs);
-      succHierarch = true;
-    } catch (...) {
-      succHierarch = false;
-    }
-
-    if (!succHierarch) {
-      sgpp::base::HierarchisationSLE hierSLE(*grid);
-      sgpp::base::sle_solver::Eigen sleSolver;
-
-      // solve linear system
-      if (!sleSolver.solve(hierSLE, funEvals, coeffs)) {
-        // return 1;
-      }
-    }
-    addedPoints.clear();
-  }
-  double prod = 1;
-  for (auto pair : ranges) {
-    prod *= (pair.second - pair.first);
-  }
-  std::unique_ptr<sgpp::base::OperationQuadrature> opQ(
-      sgpp::op_factory::createOperationQuadrature(*grid));
-  double res = opQ->doQuadrature(coeffs);
-  return res * prod;
-}
-*/
 double PolynomialChaosExpansion::adaptiveQuadratureWeighted(
     const std::function<double(const base::DataVector&)>& funct, int dim, size_t n,
     size_t quadOrder) {
@@ -540,11 +456,6 @@ double PolynomialChaosExpansion::adaptiveQuadratureWeighted(
    * Refine adaptively until number of points is reached.
    */
   while (gridStorage.getSize() < n) {
-    /**
-     * The SurplusRefinementFunctor chooses the grid point with the highest absolute surplus.
-     * Refining the point means, that all children of this point (if not already present) are
-     * added to the grid. Also all missing parents are added (recursively).
-     */
     base::SurplusRefinementFunctor functor(coeffs, 10);
     grid->getGenerator().refine(functor, &addedPoints);
 
@@ -592,7 +503,7 @@ double PolynomialChaosExpansion::adaptiveQuadratureWeighted(
   return res;
 }
 double PolynomialChaosExpansion::sparseGridQuadratureL2(
-    const std::function<double(const base::DataVector&)>& funct, int dim, int n /*,int level*/) {
+    const std::function<double(const base::DataVector&)>& funct, int dim, int n) {
   auto numfunc = [&funct](const base::DataVector& input,
                           const std::vector<std::pair<double, double>>& ranges) {
     base::DataVector temp(input.size());
@@ -696,11 +607,6 @@ double PolynomialChaosExpansion::adaptiveQuadratureL2(
    * Refine adaptively until number of points is reached.
    */
   while (gridStorage.getSize() < n) {
-    /**
-     * The SurplusRefinementFunctor chooses the grid point with the highest absolute surplus.
-     * Refining the point means, that all children of this point (if not already present) are
-     * added to the grid. Also all missing parents are added (recursively).
-     */
     base::SurplusRefinementFunctor functor(coeffs, 10);
     grid->getGenerator().refine(functor, &addedPoints);
 
