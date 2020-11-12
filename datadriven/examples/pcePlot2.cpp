@@ -16,12 +16,22 @@
 #include <vector>
 // functions to be integrated
 double e(const sgpp::base::DataVector& vec) {
+  /*
   return 1 - ((4 * vec[1]) / (5 * 225 * vec[0])) -
          ((vec[2] * vec[2]) / (25 * 225 * vec[0] * vec[0]));
+         */
   // return 0.05 * pow(vec[0] - 2, 2) + 2 * pow(vec[1] + 1, 1);
   // return exp(-100 * (pow(vec[0], 2) + pow(vec[1], 2)));
-  // return sin(vec[0]) + 3 * vec[0] * pow(sin(vec[1]), 3) +
+  return sin(vec[0]) + 3 * vec[0] * pow(sin(vec[1]), 3);  //+
   // 5 * exp(-100 * (pow(vec[0] - 0.2, 2) + pow(vec[1] - 0.2, 2)));
+
+  /*
+  double sum = 0;
+  for (int i = 0; i < 9; i++) {
+    sum -= vec[i] * vec[i];
+  }
+  return sum;
+  */
 
   /*
      return (2 * M_PI * vec[2] * (vec[3] - vec[5])) /
@@ -32,12 +42,14 @@ double e(const sgpp::base::DataVector& vec) {
 }
 int main() {
   sgpp::base::DistributionsVector dists;
+  /*
   auto dist1 = std::make_shared<sgpp::base::DistributionLogNormal>(5, .5);
   auto dist2 = std::make_shared<sgpp::base::DistributionNormal>(2000, 400);
   auto dist3 = std::make_shared<sgpp::base::DistributionNormal>(500, 100);
+  */
 
-  // auto dist1 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
-  // auto dist2 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+  auto dist1 = std::make_shared<sgpp::base::DistributionNormal>(0, .1);
+  auto dist2 = std::make_shared<sgpp::base::DistributionNormal>(0, .1);
   /*
   auto dist1 = std::make_shared<sgpp::base::DistributionNormal>(0.1, .0161812);
   auto dist2 = std::make_shared<sgpp::base::DistributionLogNormal>(7.71, 1.0056);
@@ -48,18 +60,40 @@ int main() {
   auto dist7 = std::make_shared<sgpp::base::DistributionUniform>(1120, 1680);
   auto dist8 = std::make_shared<sgpp::base::DistributionUniform>(9855, 12045);
   */
-  sgpp::base::DataVector lb{exp(.5), -1600, -400};
-  sgpp::base::DataVector ub{exp(9.5), 5600, 1400};
+  // sgpp::base::DataVector lb{exp(.5), -1600, -400};
+  // sgpp::base::DataVector ub{exp(9.5), 5600, 1400};
   /*
   sgpp::base::DataVector lb{-0.0456308, exp(-1.3404), 63070, 990, 63.1, 700, 1120, 9855};
   sgpp::base::DataVector ub{0.2456308, exp(16.7604), 115600, 1110, 116, 820, 1680, 12045};
   */
-  // sgpp::base::DataVector lb{-9, -9};
-  // sgpp::base::DataVector ub{9, 9};
+  sgpp::base::DataVector lb{-.9, -.9};
+  sgpp::base::DataVector ub{.9, .9};
+  dists.push_back(dist1);
+  dists.push_back(dist2);
+
+  /*
+  int dim = 9;
+  sgpp::base::DataVector lb(9, -9);
+  sgpp::base::DataVector ub(9, 9);
+  auto dist1 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+  auto dist2 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+  auto dist3 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+  auto dist4 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+  auto dist5 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+  auto dist6 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+  auto dist7 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+  auto dist8 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+  auto dist9 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
   dists.push_back(dist1);
   dists.push_back(dist2);
   dists.push_back(dist3);
-
+  dists.push_back(dist4);
+  dists.push_back(dist5);
+  dists.push_back(dist6);
+  dists.push_back(dist7);
+  dists.push_back(dist8);
+  dists.push_back(dist9);
+  */
   class Functe : public sgpp::base::ScalarFunction {
    public:
     explicit Functe(int dim) : sgpp::base::ScalarFunction(dim) {}
@@ -78,8 +112,8 @@ int main() {
   of.open("plot_pce/" + path + ".txt", std::ios::out | std::ios::trunc);
   of << std::fixed;
   of << std::setprecision(std::numeric_limits<double>::digits10 + 1);
-  int points = 1400;
-  int dim = 3;
+  int dim = 2;
+  int points = 1200;
   std::vector<int> gridPoints;
 
   for (int i = 50; i <= points; i *= 1.6) {
@@ -92,6 +126,7 @@ int main() {
       ++j;
     }
     gridPoints.push_back(gridStorage.getSize());
+    std::cout << gridStorage.getSize() << '\n';
   }
 
   for (int i : gridPoints) {

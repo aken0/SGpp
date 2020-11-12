@@ -263,7 +263,7 @@ double PolynomialChaosExpansion::monteCarloQuad(
 }
 
 void PolynomialChaosExpansion::printGrid(int dim, int n, std::string tFilename) {
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 5));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   int i = 0;
   while (gridStorage.getSize() < n) {
@@ -296,7 +296,7 @@ void PolynomialChaosExpansion::printAdaptiveGrid(
     }
     return funct(temp);
   };
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 5));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   grid->getGenerator().regular(2);
 
@@ -379,7 +379,7 @@ double PolynomialChaosExpansion::sparseGridQuadrature(
     }
     return funct(temp);
   };
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 5));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   int i = 0;
   while (gridStorage.getSize() < n) {
@@ -437,7 +437,7 @@ double PolynomialChaosExpansion::adaptiveQuadratureWeighted(
     return funct(temp);
   };
 
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 5));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   grid->getGenerator().regular(2);
 
@@ -512,7 +512,7 @@ double PolynomialChaosExpansion::sparseGridQuadratureL2(
     }
     return funct(temp);
   };
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 5));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
 
   int i = 0;
@@ -585,7 +585,7 @@ double PolynomialChaosExpansion::adaptiveQuadratureL2(
     return funct(temp);
   };
 
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 5));
+  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 3));
   sgpp::base::GridStorage& gridStorage = grid->getStorage();
   grid->getGenerator().regular(2);
 
@@ -778,8 +778,20 @@ double PolynomialChaosExpansion::evalExpansion(const base::DataVector& xi, int n
 }
 
 double PolynomialChaosExpansion::getL2Error(int n, std::string method) {
-  auto gen = [this, &n, &method]() {
-    base::DataVector randvec = distributions.sample();
+  auto dim = distributions.getSize();
+  std::vector<std::uniform_real_distribution<double>> dists(dim);
+  std::random_device dev;
+  std::mt19937_64 mersenne{dev()};
+  for (int i = 0; i < dim; ++i) {
+    dists[i] = std::uniform_real_distribution<double>{-.9, .9};
+  }
+  auto gen = [this, &n, &method, &dists, &mersenne]() {
+    // base::DataVector randvec = distributions.sample();
+    base::DataVector randvec(dists.size());
+    for (std::vector<std::uniform_real_distribution<double>>::size_type i = 0; i < dists.size();
+         ++i) {
+      randvec[i] = dists[i](mersenne);
+    }
     base::DataVector transvec(randvec.getSize());
     for (std::vector<distributionType>::size_type i = 0; i < types.size(); ++i) {
       auto characteristics = this->distributions.get(i)->getCharacteristics();
@@ -804,6 +816,7 @@ double PolynomialChaosExpansion::getL2Error(int n, std::string method) {
       }
     }
     return std::pow(func(transvec) - (evalExpansion(randvec, n, method)), 2);
+    // return std::pow(func(randvec) - (evalExpansion(randvec, n, method)), 2);
   };
   size_t num = 100000;
   base::DataVector results(num);

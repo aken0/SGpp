@@ -18,12 +18,17 @@
 // Stress:
 double e(const sgpp::base::DataVector& vec) {
   // return 2 + 3 * pow(vec[0] - 1, 2) + vec[1];
-  return 0.05 * pow(vec[0] - 2, 2) + 2 * pow(vec[1] + 1, 1);
+  double sum = 0;
+  for (int i = 0; i < 9; i++) {
+    // sum -= vec[i] * vec[i];
+    sum += exp(-1 / (1 + vec[i]));
+  }
+  return sum;
   // return sin(vec[0] - 2) / exp(vec[1]);
 }
 class Functe : public sgpp::base::ScalarFunction {
  public:
-  explicit Functe() : sgpp::base::ScalarFunction(2) {}
+  explicit Functe() : sgpp::base::ScalarFunction(9) {}
   double eval(const sgpp::base::DataVector& vec) { return e(vec); }
   virtual void clone(std::unique_ptr<sgpp::base::ScalarFunction>& clone) const {
     clone = std::unique_ptr<sgpp::base::ScalarFunction>(new Functe(*this));
@@ -38,13 +43,27 @@ int main() {
   std::cout << std::fixed;
   std::cout << std::setprecision(9);
   sgpp::base::DistributionsVector dists;
-  int dim = 2;
-  sgpp::base::DataVector lb{0, 0};
-  sgpp::base::DataVector ub{20, 20};
-  auto dist1 = std::make_shared<sgpp::base::DistributionTruncGamma>(2, 20);
-  auto dist2 = std::make_shared<sgpp::base::DistributionTruncGamma>(2, 20);
+  int dim = 9;
+  sgpp::base::DataVector lb(9, -9);
+  sgpp::base::DataVector ub(9, 9);
+  auto dist1 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+  auto dist2 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+  auto dist3 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+  auto dist4 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+  auto dist5 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+  auto dist6 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+  auto dist7 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+  auto dist8 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
+  auto dist9 = std::make_shared<sgpp::base::DistributionNormal>(0, 1);
   dists.push_back(dist1);
   dists.push_back(dist2);
+  dists.push_back(dist3);
+  dists.push_back(dist4);
+  dists.push_back(dist5);
+  dists.push_back(dist6);
+  dists.push_back(dist7);
+  dists.push_back(dist8);
+  dists.push_back(dist9);
   auto e1 = std::make_shared<Functe>();
   std::cout << "-----------------------------------------------------------------------------------"
             << '\n';
@@ -62,7 +81,7 @@ int main() {
   std::cout << '\n';
   sgpp::optimization::SplineResponseSurface surface2(e1, lb, ub,
                                                      sgpp::base::GridType::NakBsplineBoundary);
-  surface2.surplusAdaptive(200, 1);
+  surface2.surplusAdaptive(2000, 1);
   std::cout << surface2.eval(sgpp::base::DataVector(dim, 0)) << ' ';
   std::cout << "surface eval" << '\n';
   std::cout << surface2.getIntegral() << ' ';
