@@ -8,8 +8,7 @@
 #include <map>
 #include <sgpp/base/datatypes/DataVector.hpp>
 #include <sgpp/base/tools/DistributionsVector.hpp>
-#include <sgpp/base/tools/OperationQuadratureMC.hpp>
-#include <sgpp/globaldef.hpp>
+//#include <sgpp/globaldef.hpp>
 #include <string>
 #include <utility>
 #include <vector>

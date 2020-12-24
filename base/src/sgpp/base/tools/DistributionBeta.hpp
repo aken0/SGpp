@@ -16,7 +16,7 @@ namespace sgpp {
 namespace base {
 
 /**
- * Disclaimer: This implementation models the beta distribution defined in the Wiener-Askey scheme,
+ * Disclaimer: This implementation models the beta distribution used for Polynomial Chaos Expansion
  * and should not be confused with the textbook definition of a beta distribution
  */
 class DistributionBeta : public Distribution {

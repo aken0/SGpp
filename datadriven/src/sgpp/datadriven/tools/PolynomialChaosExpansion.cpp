@@ -12,13 +12,14 @@
 #include <numeric>
 #include <random>
 #include <sgpp/base/datatypes/DataVector.hpp>
+#include <sgpp/base/operation/BaseOpFactory.hpp>
 #include <sgpp/base/tools/DistributionBeta.hpp>
 #include <sgpp/base/tools/DistributionNormal.hpp>
 #include <sgpp/base/tools/DistributionTruncExponential.hpp>
 #include <sgpp/base/tools/DistributionTruncGamma.hpp>
+#include <sgpp/base/tools/DistributionUniform.hpp>
 #include <sgpp/base/tools/GridPrinter.hpp>
 #include <sgpp/datadriven/tools/PolynomialChaosExpansion.hpp>
-#include <sgpp/globaldef.hpp>
 #include <sgpp_base.hpp>
 #include <string>
 #include <utility>

@@ -20,8 +20,8 @@ double e(const sgpp::base::DataVector& vec) {
   // return 2 + 3 * pow(vec[0] - 1, 2) + vec[1];
   double sum = 0;
   for (int i = 0; i < 9; i++) {
-    // sum -= vec[i] * vec[i];
-    sum += exp(-1 / (1 + vec[i]));
+    sum -= vec[i] * vec[i];
+    // sum += exp(-1 / (1 + vec[i]));
   }
   return sum;
   // return sin(vec[0] - 2) / exp(vec[1]);
@@ -67,9 +67,11 @@ int main() {
   auto e1 = std::make_shared<Functe>();
   std::cout << "-----------------------------------------------------------------------------------"
             << '\n';
+  /*
   sgpp::datadriven::PolynomialChaosExpansion ee1 =
       sgpp::datadriven::PolynomialChaosExpansion(e, 2, dists);
-  std::cout << ee1.getL2Error(2000, "adaptiveWeighted") << " pce L2" << '\n';
+  // std::cout << ee1.getL2Error(60, "sparseGrid") << " pce L2" << '\n';
+  std::cout << ee1.getL2Error(6000, "adaptiveWeighted") << " pce L2" << '\n';
   std::cout << ee1.getMean(400, "adaptiveGrid") << " pce mean" << '\n';
   std::cout << ee1.getVariance(200, "adaptiveGrid") << " pce variance" << '\n';
   std::cout << ee1.evalExpansion(sgpp::base::DataVector(dim, 0), 200, "adaptiveGrid") << " pce eval"
@@ -79,9 +81,10 @@ int main() {
     std::cout << entry << ", ";
   }
   std::cout << '\n';
+  */
   sgpp::optimization::SplineResponseSurface surface2(e1, lb, ub,
                                                      sgpp::base::GridType::NakBsplineBoundary);
-  surface2.surplusAdaptive(2000, 1);
+  surface2.surplusAdaptive(600, 1);
   std::cout << surface2.eval(sgpp::base::DataVector(dim, 0)) << ' ';
   std::cout << "surface eval" << '\n';
   std::cout << surface2.getIntegral() << ' ';
