@@ -51,6 +51,7 @@ class PolynomialChaosExpansion {
   base::DataVector alpha;
   base::DataVector beta;
   base::DataVector coefficients;
+  int last_n;
 
  private:
   double evalLegendre(int n, double x);
@@ -78,27 +79,15 @@ class PolynomialChaosExpansion {
    */
   ~PolynomialChaosExpansion();
 
-  void printGrid(int dim, int n, std::string tFilename);
-
-  void printAdaptiveGrid(std::function<double(const base::DataVector&)> funct, int dim, size_t n,
-                         std::string tFilename);
-
-  double monteCarloQuad(const std::function<double(const base::DataVector&)>& funct,
-                        const size_t& n);
-
   double sparseGridQuadrature(const std::function<double(const base::DataVector&)>& funct, int dim,
                               int n, size_t quadOrder);
   double adaptiveQuadratureWeighted(const std::function<double(const base::DataVector&)>& funct,
                                     int dim, size_t n, size_t quadOrder);
-  double sparseGridQuadratureL2(const std::function<double(const base::DataVector&)>& funct,
-                                int dim, int n);
-  double adaptiveQuadratureL2(const std::function<double(const base::DataVector&)>& funct, int dim,
-                              size_t n);
 
   /*
    * calculates the coefficients using n points and the given method
    */
-  base::DataVector calculateCoefficients(int n, std::string method);
+  base::DataVector calculateCoefficients(int n, bool use_adaptive);
   /*
    * returns the calculated coefficients
    */
@@ -108,19 +97,19 @@ class PolynomialChaosExpansion {
   /*
    * evaluates the PCE at the given point
    */
-  double evalExpansion(const base::DataVector& xi, int n, std::string method);
+  double evalExpansion(const base::DataVector& xi, int n, bool use_adaptive);
   /*
    * retrns the mean of the expansion
    */
-  double getMean(int n, std::string method);
+  double getMean(int n, bool use_adaptive);
   /*
    * returns the variance of the expansion
    */
-  double getVariance(int n, std::string method);
+  double getVariance(int n, bool use_adaptive);
   /*
    * returns the L2 approximation error of the expansion
    */
-  double getL2Error(int n, std::string method);
+  double getL2Error(int n, bool use_adaptive);
 };
 }  // namespace datadriven
 }  // namespace sgpp

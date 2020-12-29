@@ -54,10 +54,10 @@ int main() {
             << '\n';
   sgpp::datadriven::PolynomialChaosExpansion ee1 =
       sgpp::datadriven::PolynomialChaosExpansion(e, 5, dists);
-  std::cout << ee1.getL2Error(3000, "adaptiveWeighted") << " pce L2" << '\n';
-  std::cout << ee1.getMean(600, "adaptiveGrid") << " pce mean" << '\n';
-  std::cout << ee1.getVariance(200, "adaptiveGrid") << " pce variance" << '\n';
-  std::cout << ee1.evalExpansion(evalVec, 200, "adaptiveGrid") << " pce eval" << '\n';
+  std::cout << ee1.getL2Error(2000, true) << " pce L2" << '\n';
+  std::cout << ee1.getMean(600, true) << " pce mean" << '\n';
+  std::cout << ee1.getVariance(200, true) << " pce variance" << '\n';
+  std::cout << ee1.evalExpansion(evalVec, 200, true) << " pce eval" << '\n';
   auto stuff2 = ee1.getCoefficients();
   for (auto entry : stuff2) {
     std::cout << entry << ", ";

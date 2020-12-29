@@ -218,139 +218,6 @@ double PolynomialChaosExpansion::evalGenLaguerre(int n, double x, size_t i) {
   }
 }
 
-double PolynomialChaosExpansion::monteCarloQuad(
-    const std::function<double(const base::DataVector&)>& funct, const size_t& n) {
-  std::vector<std::uniform_real_distribution<double>> dists(ranges.size());
-  double prod = 1;
-  for (auto pair : ranges) {
-    prod *= (pair.second - pair.first);
-  }
-  double factor = prod * (1.0 / static_cast<double>(n));
-  std::random_device dev;
-  std::mt19937_64 mersenne{dev()};
-  for (std::vector<std::pair<double, double>>::size_type i = 0; i < ranges.size(); ++i) {
-    dists[i] = std::uniform_real_distribution<double>{ranges[i].first, ranges[i].second};
-  }
-  auto gen = [&funct, &dists, &mersenne]() {
-    base::DataVector randvec(dists.size());
-    for (std::vector<std::uniform_real_distribution<double>>::size_type i = 0; i < dists.size();
-         ++i) {
-      randvec[i] = dists[i](mersenne);
-    }
-    return funct(base::DataVector(randvec));
-  };
-  base::DataVector results(n);
-  std::generate(results.begin(), results.end(), gen);
-  return factor * results.sum();
-}
-
-void PolynomialChaosExpansion::printGrid(int dim, int n, std::string tFilename) {
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 3));
-  sgpp::base::GridStorage& gridStorage = grid->getStorage();
-  int i = 0;
-  while (gridStorage.getSize() < n) {
-    gridStorage.clear();
-    grid->getGenerator().regular(i);
-    ++i;
-  }
-  std::ofstream fileout;
-  fileout.open(tFilename.c_str());
-  for (size_t i = 0; i < grid->getSize(); ++i) {
-    auto coords = gridStorage.getCoordinates(gridStorage.getPoint(i));
-    for (size_t j = 0; j < grid->getDimension(); ++j) {
-      fileout << coords.get(j);
-      if (j < grid->getDimension() - 1) {
-        fileout << ',';
-      }
-    }
-    fileout << '\n';
-  }
-}
-
-void PolynomialChaosExpansion::printAdaptiveGrid(
-    std::function<double(const base::DataVector&)> funct, int dim, size_t n,
-    std::string tFilename) {
-  auto numfunc = [&funct](const base::DataVector& input,
-                          std::vector<std::pair<double, double>>& ranges) {
-    base::DataVector temp(input.size());
-    for (base::DataVector::size_type i = 0; i < input.size(); ++i) {
-      temp[i] = (input[i]) * (ranges[i].second - ranges[i].first) + ranges[i].first;
-    }
-    return funct(temp);
-  };
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 3));
-  sgpp::base::GridStorage& gridStorage = grid->getStorage();
-  grid->getGenerator().regular(2);
-
-  base::DataVector coeffs(gridStorage.getSize());
-  base::DataVector funEvals(gridStorage.getSize());
-  for (size_t i = 0; i < gridStorage.getSize(); i++) {
-    base::GridPoint& gp = gridStorage.getPoint(i);
-    base::DataVector vec(dim);
-    for (int j = 0; j < dim; ++j) {
-      vec[j] = gp.getStandardCoordinate(j);
-    }
-    funEvals[i] = numfunc(vec, ranges);
-  }
-  std::vector<size_t> addedPoints;
-
-  /**
-   * Refine adaptively until number of points is reached.
-   */
-  while (gridStorage.getSize() < n) {
-    base::SurplusRefinementFunctor functor(coeffs, 10);
-    grid->getGenerator().refine(functor, &addedPoints);
-    coeffs.resize(gridStorage.getSize());
-    funEvals.resize(gridStorage.getSize());
-    for (size_t i = 0; i < addedPoints.size(); i++) {
-      size_t seq = addedPoints[i];
-      base::GridPoint& gp = gridStorage.getPoint(seq);
-      base::DataVector vec(dim);
-      for (int j = 0; j < dim; ++j) {
-        vec[j] = gp.getStandardCoordinate(j);
-      }
-      funEvals[seq] = numfunc(vec, ranges);
-    }
-
-    coeffs.copyFrom(funEvals);
-
-    // try hierarchisation
-    bool succHierarch = false;
-
-    try {
-      std::unique_ptr<base::OperationHierarchisation>(
-          sgpp::op_factory::createOperationHierarchisation(*grid))
-          ->doHierarchisation(coeffs);
-      succHierarch = true;
-    } catch (...) {
-      succHierarch = false;
-    }
-
-    if (!succHierarch) {
-      sgpp::base::HierarchisationSLE hierSLE(*grid);
-      sgpp::base::sle_solver::Eigen sleSolver;
-
-      // solve linear system
-      if (!sleSolver.solve(hierSLE, funEvals, coeffs)) {
-        return;
-      }
-    }
-    addedPoints.clear();
-  }
-  std::ofstream fileout;
-  fileout.open(tFilename.c_str());
-  for (size_t i = 0; i < grid->getSize(); ++i) {
-    auto coords = gridStorage.getCoordinates(gridStorage.getPoint(i));
-    for (size_t j = 0; j < grid->getDimension(); ++j) {
-      fileout << coords.get(j);
-      if (j < grid->getDimension() - 1) {
-        fileout << ',';
-      }
-    }
-    fileout << '\n';
-  }
-}
-
 double PolynomialChaosExpansion::sparseGridQuadrature(
     const std::function<double(const base::DataVector&)>& funct, int dim, int n, size_t quadOrder) {
   auto numfunc = [&funct](const base::DataVector& input,
@@ -484,175 +351,6 @@ double PolynomialChaosExpansion::adaptiveQuadratureWeighted(
   double res = opWQ->doWeightedQuadrature(coeffs, standardvec);
   return res;
 }
-double PolynomialChaosExpansion::sparseGridQuadratureL2(
-    const std::function<double(const base::DataVector&)>& funct, int dim, int n) {
-  auto numfunc = [&funct](const base::DataVector& input,
-                          const std::vector<std::pair<double, double>>& ranges) {
-    base::DataVector temp(input.size());
-    for (base::DataVector::size_type i = 0; i < input.size(); ++i) {
-      temp[i] = input[i] * (ranges[i].second - ranges[i].first) + ranges[i].first;
-    }
-    return funct(temp);
-  };
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 3));
-  sgpp::base::GridStorage& gridStorage = grid->getStorage();
-
-  int i = 0;
-  while (gridStorage.getSize() < n) {
-    gridStorage.clear();
-    grid->getGenerator().regular(i);
-    ++i;
-  }
-  sgpp::base::DataVector evals(gridStorage.getSize());
-  base::DataVector p(dim);
-  for (size_t i = 0; i < gridStorage.getSize(); i++) {
-    sgpp::base::GridPoint& gp = gridStorage.getPoint(i);
-    for (int j = 0; j < dim; ++j) {
-      p[j] = gp.getStandardCoordinate(j);
-    }
-    evals[i] = numfunc(p, ranges);
-  }
-  bool succHierarch = false;
-
-  try {
-    std::unique_ptr<base::OperationHierarchisation>(
-        sgpp::op_factory::createOperationHierarchisation(*grid))
-        ->doHierarchisation(evals);
-    succHierarch = true;
-  } catch (...) {
-    succHierarch = false;
-  }
-
-  base::DataVector coeffs(evals.getSize());
-  if (!succHierarch) {
-    sgpp::base::HierarchisationSLE hierSLE(*grid);
-    sgpp::base::sle_solver::Eigen sleSolver;
-
-    // solve linear system
-    if (!sleSolver.solve(hierSLE, evals, coeffs)) {
-      // return 1;
-    }
-    evals = coeffs;
-  }
-  // sample grid at MC points, compare opEval to transformed function(numfunc)
-  std::vector<std::uniform_real_distribution<double>> dists(dim);
-  std::random_device dev;
-  std::mt19937_64 mersenne{dev()};
-  for (int i = 0; i < dim; ++i) {
-    dists[i] = std::uniform_real_distribution<double>{0.0, 1.0};
-  }
-  auto gen = [&numfunc, &dists, &mersenne, &grid, &evals, this]() {
-    base::DataVector randvec(dists.size());
-    for (std::vector<std::uniform_real_distribution<double>>::size_type i = 0; i < dists.size();
-         ++i) {
-      randvec[i] = dists[i](mersenne);
-    }
-    std::unique_ptr<sgpp::base::OperationEval> opEval(
-        sgpp::op_factory::createOperationEvalNaive(*grid));
-    return std::pow(numfunc(base::DataVector(randvec), ranges) - (opEval->eval(evals, randvec)), 2);
-  };
-  size_t num = 100000;
-  base::DataVector results(num);
-  std::generate(results.begin(), results.end(), gen);
-  return results.sum() / static_cast<double>(num);
-}
-double PolynomialChaosExpansion::adaptiveQuadratureL2(
-    const std::function<double(const base::DataVector&)>& funct, int dim, size_t n) {
-  auto numfunc = [&funct](const base::DataVector& input,
-                          const std::vector<std::pair<double, double>>& ranges) {
-    base::DataVector temp(input.size());
-    for (base::DataVector::size_type i = 0; i < input.size(); ++i) {
-      temp[i] = (input[i]) * (ranges[i].second - ranges[i].first) + ranges[i].first;
-    }
-    return funct(temp);
-  };
-
-  std::unique_ptr<sgpp::base::Grid> grid(sgpp::base::Grid::createNakBsplineExtendedGrid(dim, 3));
-  sgpp::base::GridStorage& gridStorage = grid->getStorage();
-  grid->getGenerator().regular(2);
-
-  base::DataVector coeffs(gridStorage.getSize());
-
-  base::DataVector funEvals(gridStorage.getSize());
-  for (size_t i = 0; i < gridStorage.getSize(); i++) {
-    base::GridPoint& gp = gridStorage.getPoint(i);
-    base::DataVector vec(dim);
-    for (int j = 0; j < dim; ++j) {
-      vec[j] = gp.getStandardCoordinate(j);
-    }
-    funEvals[i] = numfunc(vec, ranges);
-  }
-
-  std::vector<size_t> addedPoints;
-
-  /**
-   * Refine adaptively until number of points is reached.
-   */
-  while (gridStorage.getSize() < n) {
-    base::SurplusRefinementFunctor functor(coeffs, 10);
-    grid->getGenerator().refine(functor, &addedPoints);
-
-    coeffs.resize(gridStorage.getSize());
-    funEvals.resize(gridStorage.getSize());
-    for (size_t i = 0; i < addedPoints.size(); i++) {
-      size_t seq = addedPoints[i];
-      base::GridPoint& gp = gridStorage.getPoint(seq);
-      base::DataVector vec(dim);
-      for (int j = 0; j < dim; ++j) {
-        vec[j] = gp.getStandardCoordinate(j);
-      }
-      funEvals[seq] = numfunc(vec, ranges);
-    }
-
-    coeffs.copyFrom(funEvals);
-
-    // try hierarchisation
-    bool succHierarch = false;
-
-    try {
-      std::unique_ptr<base::OperationHierarchisation>(
-          sgpp::op_factory::createOperationHierarchisation(*grid))
-          ->doHierarchisation(coeffs);
-      succHierarch = true;
-    } catch (...) {
-      succHierarch = false;
-    }
-
-    if (!succHierarch) {
-      sgpp::base::HierarchisationSLE hierSLE(*grid);
-      sgpp::base::sle_solver::Eigen sleSolver;
-
-      // solve linear system
-      if (!sleSolver.solve(hierSLE, funEvals, coeffs)) {
-        // return 1;
-      }
-    }
-    addedPoints.clear();
-  }
-  // sample grid at MC points, compare opEval to transformed function(numfunc)
-  std::vector<std::uniform_real_distribution<double>> dists(dim);
-  std::random_device dev;
-  std::mt19937_64 mersenne{dev()};
-  for (int i = 0; i < dim; ++i) {
-    dists[i] = std::uniform_real_distribution<double>{0.0, 1.0};
-  }
-
-  auto gen = [&numfunc, &dists, &mersenne, &grid, &coeffs, this]() {
-    base::DataVector randvec(dists.size());
-    for (std::vector<std::uniform_real_distribution<double>>::size_type i = 0; i < dists.size();
-         ++i) {
-      randvec[i] = dists[i](mersenne);
-    }
-    std::unique_ptr<sgpp::base::OperationEval> opEval(
-        sgpp::op_factory::createOperationEvalNaive(*grid));
-    return std::pow(numfunc(base::DataVector(randvec), ranges) - (opEval->eval(coeffs, randvec)),
-                    2);
-  };
-  size_t num = 100000;
-  base::DataVector results(num);
-  std::generate(results.begin(), results.end(), gen);
-  return results.sum() / static_cast<double>(num);
-}
 
 std::vector<std::vector<int>> PolynomialChaosExpansion::multiIndex(int dimension, int order) {
   std::vector<std::vector<int>> index(static_cast<int>(std::pow(order + 1, dimension)));
@@ -681,7 +379,7 @@ std::vector<std::vector<int>> PolynomialChaosExpansion::multiIndex(int dimension
 
   return index;
 }
-base::DataVector PolynomialChaosExpansion::calculateCoefficients(int n, std::string method) {
+base::DataVector PolynomialChaosExpansion::calculateCoefficients(int n, bool use_adaptive) {
   auto index = multiIndex(static_cast<int>(types.size()), order);
   base::DataVector result(index.size());
   // calculate aj for each entry in the multiIndex
@@ -698,11 +396,9 @@ base::DataVector PolynomialChaosExpansion::calculateCoefficients(int n, std::str
       return numfunc(vec) * func(vec);
     };
     double num = 1;
-    if (method == "MC") {
-      num = monteCarloQuad(intfunc, n);
-    } else if (method == "sparseGrid") {
+    if (!use_adaptive) {
       num = sparseGridQuadrature(intfunc, static_cast<int>(types.size()), n, 100);
-    } else if (method == "adaptiveWeighted") {
+    } else if (use_adaptive) {
       num = adaptiveQuadratureWeighted(intfunc, static_cast<int>(types.size()), n, 100);
     }
     // calculate denominator
@@ -722,9 +418,9 @@ base::DataVector PolynomialChaosExpansion::getCoefficients() { return coefficien
 void PolynomialChaosExpansion::clearCoefficients() { this->coefficients.clear(); }
 
 double PolynomialChaosExpansion::evalExpansion(const base::DataVector& xi, int n,
-                                               std::string method) {
+                                               bool use_adaptive) {
   if (coefficients.empty()) {
-    calculateCoefficients(n, method);
+    calculateCoefficients(n, use_adaptive);
   }
   base::DataVector temp(xi);
   for (std::vector<distributionType>::size_type i = 0; i < types.size(); ++i) {
@@ -759,7 +455,7 @@ double PolynomialChaosExpansion::evalExpansion(const base::DataVector& xi, int n
   return sum;
 }
 
-double PolynomialChaosExpansion::getL2Error(int n, std::string method) {
+double PolynomialChaosExpansion::getL2Error(int n, bool use_adaptive) {
   auto dim = distributions.getSize();
   std::vector<std::uniform_real_distribution<double>> dists(dim);
   std::random_device dev;
@@ -767,7 +463,7 @@ double PolynomialChaosExpansion::getL2Error(int n, std::string method) {
   for (int i = 0; i < dim; ++i) {
     dists[i] = std::uniform_real_distribution<double>{-.9, .9};
   }
-  auto gen = [this, &n, &method, &dists, &mersenne]() {
+  auto gen = [this, &n, &dists, &mersenne, &use_adaptive]() {
     // base::DataVector randvec = distributions.sample();
     base::DataVector randvec(dists.size());
     for (std::vector<std::uniform_real_distribution<double>>::size_type i = 0; i < dists.size();
@@ -797,23 +493,22 @@ double PolynomialChaosExpansion::getL2Error(int n, std::string method) {
         transvec[i] = randvec[i];
       }
     }
-    return std::pow(func(transvec) - (evalExpansion(randvec, n, method)), 2);
-    // return std::pow(func(randvec) - (evalExpansion(randvec, n, method)), 2);
+    return std::pow(func(transvec) - (evalExpansion(randvec, n, use_adaptive)), 2);
   };
   size_t num = 100000;
   base::DataVector results(num);
   std::generate(results.begin(), results.end(), gen);
   return results.sum() / static_cast<double>(num);
 }
-double PolynomialChaosExpansion::getMean(int n, std::string method) {
+double PolynomialChaosExpansion::getMean(int n, bool use_adaptive) {
   if (coefficients.empty()) {
-    calculateCoefficients(n, method);
+    calculateCoefficients(n, use_adaptive);
   }
   return coefficients[0];
 }
-double PolynomialChaosExpansion::getVariance(int n, std::string method) {
+double PolynomialChaosExpansion::getVariance(int n, bool use_adaptive) {
   if (coefficients.empty()) {
-    calculateCoefficients(n, method);
+    calculateCoefficients(n, use_adaptive);
   }
   // order:hermite,jacobi,legendre,laguerre,genlaguerre
   auto normalization = std::vector<std::function<double(double, size_t)>>{
