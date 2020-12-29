@@ -84,7 +84,7 @@ int main() {
   */
   sgpp::optimization::SplineResponseSurface surface2(e1, lb, ub,
                                                      sgpp::base::GridType::NakBsplineBoundary);
-  surface2.surplusAdaptive(600, 1);
+  surface2.surplusAdaptive(200, 1);
   std::cout << surface2.eval(sgpp::base::DataVector(dim, 0)) << ' ';
   std::cout << "surface eval" << '\n';
   std::cout << surface2.getIntegral() << ' ';

@@ -4,11 +4,32 @@
 // sgpp.sparsegrids.org
 
 #pragma once
+
 #include <functional>
 #include <map>
 #include <sgpp/base/datatypes/DataVector.hpp>
 #include <sgpp/base/tools/DistributionsVector.hpp>
 //#include <sgpp/globaldef.hpp>
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <functional>
+#include <iostream>
+#include <map>
+#include <memory>
+#include <numeric>
+#include <random>
+#include <sgpp/base/datatypes/DataVector.hpp>
+#include <sgpp/base/grid/generation/functors/SurplusRefinementFunctor.hpp>
+#include <sgpp/base/operation/BaseOpFactory.hpp>
+#include <sgpp/base/tools/DistributionBeta.hpp>
+#include <sgpp/base/tools/DistributionNormal.hpp>
+#include <sgpp/base/tools/DistributionTruncExponential.hpp>
+#include <sgpp/base/tools/DistributionTruncGamma.hpp>
+#include <sgpp/base/tools/DistributionUniform.hpp>
+#include <sgpp/base/tools/GridPrinter.hpp>
+#include <sgpp/base/tools/sle/solver/Eigen.hpp>
+#include <sgpp/base/tools/sle/system/HierarchisationSLE.hpp>
 #include <string>
 #include <utility>
 #include <vector>
@@ -16,6 +37,10 @@
 namespace sgpp {
 namespace datadriven {
 enum class distributionType { Normal, Beta, Uniform, Exponential, Gamma };
+/**
+ * a PCE object providing different methods to calculate the PCE coefficients and evaluating the
+ * expansion
+ */
 class PolynomialChaosExpansion {
   std::function<double(const base::DataVector&)> func;
   int order;
@@ -37,23 +62,30 @@ class PolynomialChaosExpansion {
   std::vector<std::function<double(double, size_t)>> denoms;
   std::vector<std::function<double(double, double, size_t)>> evals;
   std::vector<std::vector<int>> multiIndex(int dimension, int order);
-  // multiple functions should be moved to private and are just here for debugging/plots
+
  public:
   /*
-   *constructs a PCE using total-order expansion for the given function, expansion order and
-   *underlying distributions
+   * Constructor
+   *
+   * constructs a PCE using total-order expansion for the given function, expansion order and
+   * underlying distributions
    */
   PolynomialChaosExpansion(std::function<double(const base::DataVector&)> func, int order,
                            sgpp::base::DistributionsVector distributions);
 
+  /**
+   * Destructor
+   */
   ~PolynomialChaosExpansion();
 
   void printGrid(int dim, int n, std::string tFilename);
 
   void printAdaptiveGrid(std::function<double(const base::DataVector&)> funct, int dim, size_t n,
                          std::string tFilename);
+
   double monteCarloQuad(const std::function<double(const base::DataVector&)>& funct,
                         const size_t& n);
+
   double sparseGridQuadrature(const std::function<double(const base::DataVector&)>& funct, int dim,
                               int n, size_t quadOrder);
   double adaptiveQuadratureWeighted(const std::function<double(const base::DataVector&)>& funct,

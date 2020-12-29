@@ -2,28 +2,9 @@
 // This file is part of the SG++ project. For conditions of distribution and
 // use, please see the copyright notice provided with SG++ or at
 // sgpp.sparsegrids.org
-#include <algorithm>
-#include <cmath>
-#include <cstddef>
-#include <functional>
-#include <iostream>
-#include <map>
-#include <memory>
-#include <numeric>
-#include <random>
-#include <sgpp/base/datatypes/DataVector.hpp>
-#include <sgpp/base/operation/BaseOpFactory.hpp>
-#include <sgpp/base/tools/DistributionBeta.hpp>
-#include <sgpp/base/tools/DistributionNormal.hpp>
-#include <sgpp/base/tools/DistributionTruncExponential.hpp>
-#include <sgpp/base/tools/DistributionTruncGamma.hpp>
-#include <sgpp/base/tools/DistributionUniform.hpp>
-#include <sgpp/base/tools/GridPrinter.hpp>
+
 #include <sgpp/datadriven/tools/PolynomialChaosExpansion.hpp>
-#include <sgpp_base.hpp>
-#include <string>
-#include <utility>
-#include <vector>
+
 namespace sgpp {
 namespace datadriven {
 PolynomialChaosExpansion::PolynomialChaosExpansion(std::function<double(const base::DataVector&)> f,
@@ -863,6 +844,6 @@ double PolynomialChaosExpansion::getVariance(int n, std::string method) {
   temp.sqr();
   return temp.sum();
 }
-};  // namespace datadriven
+}  // namespace datadriven
 }  // namespace sgpp
 
