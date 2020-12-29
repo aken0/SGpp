@@ -3,8 +3,11 @@
 // use, please see the copyright notice provided with SG++ or at
 // sgpp.sparsegrids.org
 
+<<<<<<< HEAD
 #include <cstring>
 #include <set>
+=======
+>>>>>>> upstream/uqSurrogates
 #include <sgpp/base/exception/factory_exception.hpp>
 #include <sgpp/base/grid/type/BsplineBoundaryGrid.hpp>
 #include <sgpp/base/grid/type/BsplineClenshawCurtisGrid.hpp>
@@ -210,6 +213,7 @@
 #include <sgpp/base/operation/hash/OperationQuadratureNakBsplineBoundary.hpp>
 #include <sgpp/base/operation/hash/OperationQuadratureNakBsplineExtended.hpp>
 #include <sgpp/base/operation/hash/OperationQuadratureNakBsplineModified.hpp>
+#include <sgpp/base/operation/hash/OperationQuadratureNakPBspline.hpp>
 #include <sgpp/base/operation/hash/OperationQuadraturePoly.hpp>
 #include <sgpp/base/operation/hash/OperationQuadraturePolyBoundary.hpp>
 #include <sgpp/base/operation/hash/OperationQuadraturePolyClenshawCurtis.hpp>
@@ -234,11 +238,22 @@
 #include <sgpp/base/operation/hash/OperationWeightedQuadratureNakBsplineBoundary.hpp>
 #include <sgpp/base/operation/hash/OperationWeightedQuadratureNakBsplineExtended.hpp>
 #include <sgpp/base/operation/hash/OperationWeightedQuadratureNakBsplineModified.hpp>
+<<<<<<< HEAD
 #include <sgpp/base/operation/hash/OperationWeightedSecondMomentNak.hpp>
 #include <sgpp/globaldef.hpp>
 #include <vector>
 
 #include "hash/OperationWeightedSecondMomentNak.hpp"
+=======
+#include <sgpp/base/operation/hash/OperationWeightedQuadratureNakPBspline.hpp>
+#include <sgpp/base/operation/hash/OperationWeightedSecondMomentNak.hpp>
+#include <sgpp/base/operation/hash/OperationWeightedSecondMomentNak.hpp>
+#include <sgpp/globaldef.hpp>
+#include <vector>
+#include <cstring>
+#include <set>
+
+>>>>>>> upstream/uqSurrogates
 
 namespace sgpp {
 
@@ -385,6 +400,9 @@ base::OperationQuadrature* createOperationQuadrature(base::Grid& grid) {
   } else if (grid.getType() == base::GridType::ModNakBspline) {
     return new base::OperationQuadratureNakBsplineModified(
         grid.getStorage(), dynamic_cast<base::ModNakBsplineGrid*>(&grid)->getDegree());
+  } else if (grid.getType() == base::GridType::NakPBspline) {
+    return new base::OperationQuadratureNakPBspline(
+        grid.getStorage(), dynamic_cast<base::NakPBsplineGrid*>(&grid)->getDegree());
   } else {
     throw base::factory_exception(
         "createOperationQuadrature is not implemented for this grid type.");
@@ -407,6 +425,9 @@ base::OperationWeightedQuadrature* createOperationWeightedQuadrature(base::Grid&
     return new base::OperationWeightedQuadratureNakBsplineBoundary(
         grid.getStorage(), dynamic_cast<base::NakBsplineBoundaryGrid*>(&grid)->getDegree(),
         quadOrder);
+  } else if (grid.getType() == base::GridType::NakPBspline) {
+    return new base::OperationWeightedQuadratureNakPBspline(
+        grid.getStorage(), dynamic_cast<base::NakPBsplineGrid*>(&grid)->getDegree(), quadOrder);
   } else {
     throw base::factory_exception(
         "createOperationWeightedQuadrature is not implemented for this grid type.");
@@ -505,6 +526,10 @@ base::OperationWeightedSecondMoment* createOperationWeightedSecondMoment(base::G
     return new base::OperationWeightedSecondMomentNak(
         grid.getStorage(), grid.getType(),
         dynamic_cast<base::NakBsplineExtendedGrid*>(&grid)->getDegree(), quadOrder);
+  } else if (grid.getType() == base::GridType::NakPBspline) {
+    return new base::OperationWeightedSecondMomentNak(
+        grid.getStorage(), grid.getType(), dynamic_cast<base::NakPBsplineGrid*>(&grid)->getDegree(),
+        quadOrder);
   } else {
     throw base::factory_exception(
         "createOperationWeightedSecondMoment is not implemented for this grid type.");

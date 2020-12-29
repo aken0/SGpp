@@ -63,7 +63,11 @@ void ASResponseSurfaceNakBspline::createRegularReducedSurfaceFromData_DataDriven
   gridConfig.maxDegree_ = 3;
 
   auto adaptivityConfig = sgpp::base::AdaptivityConfiguration();  // no adaptivity
+<<<<<<< HEAD
   // adaptivityConfig.nopoints_ = 0;
+=======
+  // adaptivityConfig.noPoints_ = 0;
+>>>>>>> upstream/uqSurrogates
   adaptivityConfig.numRefinements_ = 0;
 
   auto solverConfig = sgpp::solver::SLESolverConfiguration();

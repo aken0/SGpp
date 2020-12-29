@@ -12,9 +12,13 @@
 #include <sgpp/base/grid/type/LinearBoundaryGrid.hpp>
 #include <sgpp/base/grid/type/LinearGrid.hpp>
 #include <sgpp/base/grid/type/ModLinearGrid.hpp>
+#include <sgpp/base/grid/type/ModNakBsplineGrid.hpp>
 #include <sgpp/base/grid/type/NakBsplineExtendedGrid.hpp>
+<<<<<<< HEAD
 //
 #include <sgpp/base/grid/type/ModNakBsplineGrid.hpp>
+=======
+>>>>>>> upstream/uqSurrogates
 #include <sgpp/base/operation/BaseOpFactory.hpp>
 #include <sgpp/datadriven/algorithm/DMSystemMatrix.hpp>
 #include <sgpp/datadriven/application/RegressionLearner.hpp>

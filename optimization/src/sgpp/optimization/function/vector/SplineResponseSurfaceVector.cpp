@@ -97,6 +97,41 @@ void SplineResponseSurfaceVector::nextSurplusAdaptiveGrid(size_t refinementsNum,
   computedCoefficientsFlag = false;
 }
 
+void SplineResponseSurfaceVector::distributionAdaptive(size_t maxNumGridPoints, size_t initialLevel,
+                                                       sgpp::base::DistributionsVector pdfs,
+                                                       size_t refinementsNum, bool verbose) {
+  regular(initialLevel);
+  while (grid->getSize() < maxNumGridPoints) {
+    refineDistributionAdaptive(refinementsNum, pdfs, verbose);
+  }
+  interpolants = std::make_unique<sgpp::base::InterpolantVectorFunction>(*grid, coefficients);
+  interpolantGradients =
+      std::make_unique<sgpp::base::InterpolantVectorFunctionGradient>(*grid, coefficients);
+}
+
+void SplineResponseSurfaceVector::refineDistributionAdaptive(size_t refinementsNum,
+                                                             sgpp::base::DistributionsVector pdfs,
+                                                             bool verbose) {
+  if (computedCoefficientsFlag == true) {
+    nextDistributionAdaptiveGrid(refinementsNum, pdfs, verbose);
+    if (verbose) std::cout << "Refined to a grid with " << grid->getSize() << " points.\n";
+  }
+  calculateInterpolationCoefficients(verbose);
+}
+
+/**
+ * refines the grid surplus adaptive but does not recalculate interpolation coefficients
+ *@param refinementsNum	number of grid points which should be refined
+ *@param verbose        print information on the refine points
+ */
+void SplineResponseSurfaceVector::nextDistributionAdaptiveGrid(size_t refinementsNum,
+                                                               sgpp::base::DistributionsVector pdfs,
+                                                               bool verbose) {
+  sgpp::base::VectorDistributionRefinementFunctor functor(coefficients, pdfs, refinementsNum);
+  grid->getGenerator().refine(functor);
+  computedCoefficientsFlag = false;
+}
+
 // void SplineResponseSurfaceVector::ritterNovak(size_t maxNumGridPoints, double gamma,
 //                                                          bool verbose) {
 //   // this uses the default values for Ritter Novaks initial Level, max level, powerMethod
@@ -117,25 +152,26 @@ void SplineResponseSurfaceVector::nextSurplusAdaptiveGrid(size_t refinementsNum,
 
 sgpp::base::DataVector SplineResponseSurfaceVector::eval(sgpp::base::DataVector v) {
   transformPoint(v, lb, ub, unitLBounds, unitUBounds);
-  sgpp::base::DataVector evaluations(numRes);
+  // sgpp::base::DataVector evaluations(numRes);
   interpolants->eval(v, evaluations);
   return evaluations;
 }
 sgpp::base::DataVector SplineResponseSurfaceVector::evalJacobian(sgpp::base::DataVector v,
                                                                  sgpp::base::DataMatrix& jacobian) {
-  jacobian.resizeZero(numRes, numDim);
+  //jacobian.resizeZero(numRes, numDim); //unnecessary, subroutine already does this
   transformPoint(v, lb, ub, unitLBounds, unitUBounds);
-  sgpp::base::DataVector evaluations(numRes);
+  // sgpp::base::DataVector evaluations(numRes);
   interpolantGradients->eval(v, evaluations, jacobian);
   // scale gradient components according to the inner derivative of the chain rule when transforming
   // the interpolation point from the original coordinates to unit cube
-
-  for (size_t i = 0; i < numRes; i++) {
-    for (size_t j = 0; j < numDim; j++) {
-      double temp = jacobian.get(i, j) / (ub[j] - lb[j]);
-      jacobian.set(i, j, temp);
-    }
-  }
+  // for (size_t i = 0; i < numRes; i++) {
+  //   for (size_t j = 0; j < numDim; j++) {
+  //     double temp = jacobian.get(i, j) / (ub[j] - lb[j]);
+  //     jacobian.set(i, j, temp);
+  //   }
+  // }
+  // more efficient scaling
+  jacobian.componentwise_div(jacobianScaling);
   return evaluations;
 }
 
